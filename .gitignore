@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# import pipeline scratch files
+/scripts/_image_filelist*.txt

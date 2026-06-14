@@ -1,65 +1,103 @@
-import Image from "next/image";
+import Link from "next/link";
+import { ProductCard } from "@/components/ProductCard";
+import { getAllProducts } from "@/lib/products";
 
 export default function Home() {
+  const all = getAllProducts();
+  const featured = all
+    .slice()
+    .sort((a, b) => (b.rrpUsd - b.priceUsd) - (a.rrpUsd - a.priceUsd))
+    .slice(0, 8);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div>
+      <section className="border-b border-[var(--border)]">
+        <div className="mx-auto max-w-7xl px-4 py-20 sm:py-28">
+          <p className="font-mono text-xs uppercase tracking-[0.25em] text-[var(--accent)]">
+            Branded closeouts · shipped across Asia
           </p>
+          <h1 className="mt-3 text-4xl font-bold leading-[1.05] sm:text-6xl lg:text-7xl">
+            Brand names.<br />
+            Wholesale prices.<br />
+            <span className="text-[var(--accent)]">No middlemen.</span>
+          </h1>
+          <p className="mt-6 max-w-xl text-base text-[var(--muted)] sm:text-lg">
+            Brandattack moves authentic end-of-line and market-seconds inventory direct from
+            wholesale lots to your wardrobe. Up to <span className="font-semibold text-foreground">70% off RRP</span>,
+            limited stock, no restocks.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link
+              href="/shop"
+              className="rounded-sm bg-[var(--accent)] px-6 py-3 font-mono text-sm font-bold uppercase tracking-wider text-black hover:opacity-90"
+            >
+              Attack the shop →
+            </Link>
+            <Link
+              href="/about"
+              className="rounded-sm border border-[var(--border)] px-6 py-3 font-mono text-sm font-bold uppercase tracking-wider hover:border-[var(--accent)]"
+            >
+              How it works
+            </Link>
+          </div>
+          <div className="mt-12 grid max-w-2xl grid-cols-3 gap-6 border-t border-[var(--border)] pt-8 font-mono text-xs uppercase tracking-wider">
+            <Stat label="Current SKUs" value={`${all.length}+`} />
+            <Stat label="In inventory" value="21,000+" />
+            <Stat label="Avg. discount" value="60% off" />
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-16">
+        <div className="mb-6 flex items-end justify-between">
+          <h2 className="text-2xl font-bold sm:text-3xl">Biggest discounts</h2>
+          <Link href="/shop" className="text-sm text-[var(--muted)] hover:text-[var(--accent)]">
+            See all →
+          </Link>
         </div>
-      </main>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {featured.map((p) => (
+            <ProductCard key={p.id} product={p} />
+          ))}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-16">
+        <h2 className="mb-8 text-2xl font-bold sm:text-3xl">Shop by category</h2>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <CategoryCard title="Footwear" href="/shop?division=FOOTWEAR" />
+          <CategoryCard title="Apparel" href="/shop?division=APPAREL" />
+          <CategoryCard title="Kids" href="/shop?gender=KIDS" />
+        </div>
+      </section>
     </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-xl font-bold text-foreground sm:text-2xl">{value}</div>
+      <div className="text-[var(--muted)]">{label}</div>
+    </div>
+  );
+}
+
+function CategoryCard({ title, href }: { title: string; href: string }) {
+  return (
+    <Link
+      href={href}
+      className="group flex aspect-[3/2] items-end justify-between rounded-md border border-[var(--border)] bg-[var(--surface)] p-6 transition-colors hover:border-[var(--accent)]"
+    >
+      <div>
+        <div className="text-xl font-bold sm:text-2xl">{title}</div>
+        <div className="mt-1 font-mono text-xs uppercase tracking-wider text-[var(--muted)]">
+          Shop now
+        </div>
+      </div>
+      <span className="font-mono text-2xl text-[var(--accent)] transition-transform group-hover:translate-x-1">
+        →
+      </span>
+    </Link>
   );
 }
