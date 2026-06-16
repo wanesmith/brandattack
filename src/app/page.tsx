@@ -1,103 +1,279 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ProductCard } from "@/components/ProductCard";
-import { getAllProducts } from "@/lib/products";
+import {
+  getAllProducts,
+  getBiggestDiscounts,
+  getCategoryHero,
+  getJustInProducts,
+} from "@/lib/products";
 
-export default function Home() {
-  const all = getAllProducts();
-  const featured = all
-    .slice()
-    .sort((a, b) => (b.rrpUsd - b.priceUsd) - (a.rrpUsd - a.priceUsd))
-    .slice(0, 8);
+export default async function Home() {
+  const [all, justIn, lastChance, heroMen, heroWomen, heroKids, heroFootwear, heroApparel] =
+    await Promise.all([
+      getAllProducts(),
+      getJustInProducts(8),
+      getBiggestDiscounts(8),
+      getCategoryHero("gender", "MEN"),
+      getCategoryHero("gender", "WOMEN"),
+      getCategoryHero("gender", "KIDS"),
+      getCategoryHero("division", "FOOTWEAR"),
+      getCategoryHero("division", "APPAREL"),
+    ]);
+
+  const leadImage = heroFootwear?.url ?? heroMen?.url ?? all[0]?.images[0] ?? null;
 
   return (
-    <div>
-      <section className="border-b border-[var(--border)]">
-        <div className="mx-auto max-w-7xl px-4 py-20 sm:py-28">
-          <p className="font-mono text-xs uppercase tracking-[0.25em] text-[var(--accent)]">
-            Branded closeouts · shipped across Asia
-          </p>
-          <h1 className="mt-3 text-4xl font-bold leading-[1.05] sm:text-6xl lg:text-7xl">
-            Brand names.<br />
-            Wholesale prices.<br />
-            <span className="text-[var(--accent)]">No middlemen.</span>
-          </h1>
-          <p className="mt-6 max-w-xl text-base text-[var(--muted)] sm:text-lg">
-            Brandattack moves authentic end-of-line and market-seconds inventory direct from
-            wholesale lots to your wardrobe. Up to <span className="font-semibold text-foreground">70% off RRP</span>,
-            limited stock, no restocks.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
+    <div className="relative">
+      {/* ========== FULL-BLEED HERO — Adidas signature ========== */}
+      <section className="relative h-[min(85vh,820px)] w-full overflow-hidden bg-ink">
+        {leadImage && (
+          <Image
+            src={leadImage}
+            alt=""
+            fill
+            sizes="100vw"
+            priority
+            className="reveal object-cover object-center opacity-90"
+          />
+        )}
+        {/* Gradient legibility wash */}
+        <div className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/30 to-transparent" />
+
+        {/* Three-stripe decoration top-right */}
+        <div className="absolute right-8 top-8 stripes-3 lg text-paper/70">
+          <span /><span /><span />
+        </div>
+
+        {/* Bottom-aligned content — Adidas signature placement */}
+        <div className="absolute inset-x-0 bottom-0 px-6 py-12 sm:py-16 lg:py-20">
+          <div className="mx-auto max-w-[1400px]">
+            <p className="reveal label-mono text-paper/70">
+              N. 01 · The Singapore Lot · 2026
+            </p>
+            <h1 className="reveal reveal-d1 mt-4 font-display text-[clamp(2.75rem,9vw,8.5rem)] text-paper">
+              Authentic Adidas.<br />
+              Outlet prices.
+            </h1>
+            <div className="reveal reveal-d2 mt-8 flex flex-wrap items-center gap-5">
+              <Link href="/shop" className="btn-solid !bg-paper !text-ink !border-paper hover:!bg-accent hover:!text-paper hover:!border-accent">
+                Shop the lot
+                <span aria-hidden>→</span>
+              </Link>
+              <Link
+                href="/about"
+                className="text-sm font-bold uppercase tracking-wider text-paper/90 underline-offset-4 hover:text-paper hover:underline"
+              >
+                How it works →
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========== STAT STRIP — under the hero, all-caps athletic ========== */}
+      <section className="border-b border-ink bg-paper">
+        <div className="mx-auto grid max-w-[1400px] grid-cols-3 divide-x divide-rule px-6">
+          <Stat number="21,082" label="Units in lot" />
+          <Stat number="2,290" label="Unique styles" />
+          <Stat number="−60%" label="Avg off RRP" />
+        </div>
+      </section>
+
+      {/* ========== SHOP BY CATEGORY — tighter Adidas-style grid ========== */}
+      <section className="border-b border-rule">
+        <div className="mx-auto max-w-[1400px] px-6 py-16 lg:py-20">
+          <header className="mb-8 flex items-end justify-between gap-6">
+            <div>
+              <div className="stripes-row text-ink mb-4">
+                <span /><span /><span />
+              </div>
+              <h2 className="font-display text-4xl sm:text-5xl lg:text-6xl">
+                Shop by category
+              </h2>
+            </div>
             <Link
               href="/shop"
-              className="rounded-sm bg-[var(--accent)] px-6 py-3 font-mono text-sm font-bold uppercase tracking-wider text-black hover:opacity-90"
+              className="hidden text-sm font-bold uppercase tracking-wider text-ink underline-offset-4 hover:underline sm:block"
             >
-              Attack the shop →
+              View all →
             </Link>
+          </header>
+
+          {/* Adidas-style: 4 equal tiles in a row, square aspect */}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+            <CategoryTile
+              href="/shop?gender=MEN"
+              title="Men"
+              imageUrl={heroMen?.url}
+            />
+            <CategoryTile
+              href="/shop?gender=WOMEN"
+              title="Women"
+              imageUrl={heroWomen?.url}
+            />
+            <CategoryTile
+              href="/shop?gender=KIDS"
+              title="Kids"
+              imageUrl={heroKids?.url}
+            />
+            <CategoryTile
+              href="/shop?division=FOOTWEAR"
+              title="Footwear"
+              imageUrl={heroFootwear?.url}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ========== JUST IN ========== */}
+      <section className="border-b border-rule">
+        <div className="mx-auto max-w-[1400px] px-6 py-16 lg:py-20">
+          <header className="mb-8 flex items-end justify-between">
+            <div>
+              <div className="stripes-row text-ink mb-4">
+                <span /><span /><span />
+              </div>
+              <h2 className="font-display text-4xl sm:text-5xl lg:text-6xl">
+                Just in
+              </h2>
+            </div>
+            <Link
+              href="/shop"
+              className="hidden text-sm font-bold uppercase tracking-wider text-ink underline-offset-4 hover:underline sm:block"
+            >
+              View all →
+            </Link>
+          </header>
+
+          <div className="grid grid-cols-2 gap-x-3 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
+            {justIn.slice(0, 8).map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ========== FULL-BLEED EDITORIAL — Adidas-style image block with overlay ========== */}
+      <section className="relative h-[min(70vh,640px)] w-full overflow-hidden bg-ink">
+        {heroApparel?.url && (
+          <Image
+            src={heroApparel.url}
+            alt=""
+            fill
+            sizes="100vw"
+            className="object-cover opacity-85"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-r from-ink/85 via-ink/30 to-transparent" />
+        <div className="absolute right-8 top-8 stripes-3 lg text-paper/60">
+          <span /><span /><span />
+        </div>
+        <div className="absolute inset-y-0 left-0 flex items-center px-6">
+          <div className="mx-auto max-w-[1400px]">
+            <p className="label-mono text-paper/70">N. 03 · From the lot</p>
+            <h2 className="mt-4 max-w-2xl font-display text-[clamp(2.5rem,7vw,6.5rem)] text-paper">
+              How the<br />
+              discount works
+            </h2>
+            <p className="mt-6 max-w-md text-base leading-relaxed text-paper/85">
+              We buy whole pallets of end-of-line stock straight from regional wholesalers.
+              No distributor markup. No regional reseller markup. No retail margin. What you pay is the warehouse price plus our thin operating cut.
+            </p>
             <Link
               href="/about"
-              className="rounded-sm border border-[var(--border)] px-6 py-3 font-mono text-sm font-bold uppercase tracking-wider hover:border-[var(--accent)]"
+              className="btn-outline mt-8 !text-paper !border-paper hover:!bg-paper hover:!text-ink"
             >
-              How it works
+              The full method
+              <span aria-hidden>→</span>
             </Link>
           </div>
-          <div className="mt-12 grid max-w-2xl grid-cols-3 gap-6 border-t border-[var(--border)] pt-8 font-mono text-xs uppercase tracking-wider">
-            <Stat label="Current SKUs" value={`${all.length}+`} />
-            <Stat label="In inventory" value="21,000+" />
-            <Stat label="Avg. discount" value="60% off" />
+        </div>
+      </section>
+
+      {/* ========== LAST CHANCE ========== */}
+      <section className="border-b border-rule">
+        <div className="mx-auto max-w-[1400px] px-6 py-16 lg:py-20">
+          <header className="mb-8 flex items-end justify-between">
+            <div>
+              <div className="stripes-row text-accent mb-4">
+                <span /><span /><span />
+              </div>
+              <h2 className="font-display text-4xl sm:text-5xl lg:text-6xl">
+                Last chance
+              </h2>
+              <p className="mt-3 max-w-md text-sm text-ink-soft">
+                The deepest discounts in the lot. Limited stock per size.
+              </p>
+            </div>
+            <Link
+              href="/shop?sort=discount"
+              className="hidden text-sm font-bold uppercase tracking-wider text-ink underline-offset-4 hover:underline sm:block"
+            >
+              All sale →
+            </Link>
+          </header>
+
+          <div className="grid grid-cols-2 gap-x-3 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
+            {lastChance.slice(0, 8).map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+
+          <div className="mt-14 text-center">
+            <Link href="/shop" className="btn-solid">
+              See all {all.length} styles
+              <span aria-hidden>→</span>
+            </Link>
           </div>
         </div>
       </section>
-
-      <section className="mx-auto max-w-7xl px-4 py-16">
-        <div className="mb-6 flex items-end justify-between">
-          <h2 className="text-2xl font-bold sm:text-3xl">Biggest discounts</h2>
-          <Link href="/shop" className="text-sm text-[var(--muted)] hover:text-[var(--accent)]">
-            See all →
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {featured.map((p) => (
-            <ProductCard key={p.id} product={p} />
-          ))}
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 py-16">
-        <h2 className="mb-8 text-2xl font-bold sm:text-3xl">Shop by category</h2>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <CategoryCard title="Footwear" href="/shop?division=FOOTWEAR" />
-          <CategoryCard title="Apparel" href="/shop?division=APPAREL" />
-          <CategoryCard title="Kids" href="/shop?gender=KIDS" />
-        </div>
-      </section>
     </div>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+/* ============================ Pieces ============================ */
+
+function Stat({ number, label }: { number: string; label: string }) {
   return (
-    <div>
-      <div className="text-xl font-bold text-foreground sm:text-2xl">{value}</div>
-      <div className="text-[var(--muted)]">{label}</div>
+    <div className="py-6 sm:py-8">
+      <dt className="font-display text-3xl text-ink sm:text-5xl lg:text-6xl">{number}</dt>
+      <dd className="label-mono-sm mt-2 text-ink-faded">{label}</dd>
     </div>
   );
 }
 
-function CategoryCard({ title, href }: { title: string; href: string }) {
+function CategoryTile({
+  href,
+  title,
+  imageUrl,
+}: {
+  href: string;
+  title: string;
+  imageUrl?: string;
+}) {
   return (
-    <Link
-      href={href}
-      className="group flex aspect-[3/2] items-end justify-between rounded-md border border-[var(--border)] bg-[var(--surface)] p-6 transition-colors hover:border-[var(--accent)]"
-    >
-      <div>
-        <div className="text-xl font-bold sm:text-2xl">{title}</div>
-        <div className="mt-1 font-mono text-xs uppercase tracking-wider text-[var(--muted)]">
-          Shop now
+    <Link href={href} className="group relative block aspect-square overflow-hidden bg-paper-warm">
+      {imageUrl && (
+        <Image
+          src={imageUrl}
+          alt=""
+          fill
+          sizes="(min-width: 640px) 25vw, 50vw"
+          className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+        />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-transparent to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-4 sm:p-6">
+        <div className="font-display text-2xl text-paper sm:text-3xl lg:text-4xl">
+          {title}
+        </div>
+        <div className="stripes-3 text-paper opacity-80 transition-opacity group-hover:opacity-100">
+          <span /><span /><span />
         </div>
       </div>
-      <span className="font-mono text-2xl text-[var(--accent)] transition-transform group-hover:translate-x-1">
-        →
-      </span>
+      {/* Underline reveal */}
+      <span className="absolute bottom-0 left-0 h-1 w-0 bg-accent transition-all duration-500 ease-out group-hover:w-full" />
     </Link>
   );
 }

@@ -1,4 +1,8 @@
-import productsData from "@/data/products.json";
+import "server-only";
+import { and, asc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { db, schema } from "@/db";
+
+export { formatUsd, discountPercent } from "./format";
 
 export type Variant = {
   size: string;
@@ -26,48 +30,262 @@ export type Product = {
   variants: Variant[];
 };
 
-const products = productsData as Product[];
+type ProductRow = typeof schema.products.$inferSelect;
 
-export function getAllProducts(): Product[] {
-  return products;
+function rowToProduct(
+  row: ProductRow,
+  images: string[],
+  variants: Variant[]
+): Product {
+  return {
+    id: row.id,
+    articleNo: row.articleNo,
+    title: row.title,
+    description: row.description,
+    brand: row.brand,
+    division: row.division,
+    gender: row.gender,
+    sportsCode: row.sportsCode,
+    productGroup: row.productGroup,
+    productType: row.productType,
+    season: row.season,
+    rrpUsd: Number(row.rrpUsd),
+    priceUsd: Number(row.priceUsd),
+    totalStock: variants.reduce((sum, v) => sum + v.stock, 0),
+    images,
+    variants,
+  };
 }
 
-export function getProductBySlug(slug: string): Product | undefined {
-  return products.find((p) => p.id === slug);
+async function hydrate(rows: ProductRow[]): Promise<Product[]> {
+  if (rows.length === 0) return [];
+  const ids = rows.map((r) => r.id);
+
+  const [imgs, vars] = await Promise.all([
+    db
+      .select()
+      .from(schema.productImages)
+      .where(inArray(schema.productImages.productId, ids))
+      .orderBy(asc(schema.productImages.productId), asc(schema.productImages.position)),
+    db
+      .select()
+      .from(schema.variants)
+      .where(inArray(schema.variants.productId, ids))
+      .orderBy(asc(schema.variants.productId), asc(schema.variants.size)),
+  ]);
+
+  const imgsByProduct = new Map<string, string[]>();
+  for (const i of imgs) {
+    const arr = imgsByProduct.get(i.productId) ?? [];
+    arr.push(i.url);
+    imgsByProduct.set(i.productId, arr);
+  }
+
+  const varsByProduct = new Map<string, Variant[]>();
+  for (const v of vars) {
+    const arr = varsByProduct.get(v.productId) ?? [];
+    arr.push({ sku: v.sku, size: v.size, sizeLabel: v.sizeLabel, stock: v.stock });
+    varsByProduct.set(v.productId, arr);
+  }
+
+  return rows.map((r) =>
+    rowToProduct(r, imgsByProduct.get(r.id) ?? [], varsByProduct.get(r.id) ?? [])
+  );
 }
 
 export type Filters = {
   division?: string;
   gender?: string;
   sportsCode?: string;
+  productGroup?: string;
+  season?: string;
+  brand?: string;
   q?: string;
 };
 
-export function filterProducts(filters: Filters): Product[] {
-  const q = filters.q?.trim().toLowerCase();
-  return products.filter((p) => {
-    if (filters.division && p.division !== filters.division) return false;
-    if (filters.gender && p.gender !== filters.gender) return false;
-    if (filters.sportsCode && p.sportsCode !== filters.sportsCode) return false;
-    if (q && !`${p.title} ${p.articleNo} ${p.productGroup}`.toLowerCase().includes(q)) return false;
-    return true;
-  });
+export async function getAllProducts(): Promise<Product[]> {
+  const rows = await db
+    .select()
+    .from(schema.products)
+    .where(eq(schema.products.active, true))
+    .orderBy(asc(schema.products.title));
+  return hydrate(rows);
 }
 
-export function uniqueValues<K extends keyof Product>(key: K): string[] {
-  const set = new Set<string>();
-  for (const p of products) {
-    const v = p[key];
-    if (typeof v === "string" && v) set.add(v);
+export async function filterProducts(filters: Filters): Promise<Product[]> {
+  const conditions = [eq(schema.products.active, true)];
+  if (filters.division) {
+    conditions.push(
+      eq(schema.products.division, filters.division as ProductRow["division"])
+    );
   }
-  return [...set].sort();
+  if (filters.gender) {
+    conditions.push(
+      eq(schema.products.gender, filters.gender as ProductRow["gender"])
+    );
+  }
+  if (filters.sportsCode) {
+    conditions.push(eq(schema.products.sportsCode, filters.sportsCode));
+  }
+  if (filters.productGroup) {
+    conditions.push(eq(schema.products.productGroup, filters.productGroup));
+  }
+  if (filters.season) {
+    conditions.push(eq(schema.products.season, filters.season));
+  }
+  if (filters.brand) {
+    conditions.push(eq(schema.products.brand, filters.brand));
+  }
+  if (filters.q && filters.q.trim()) {
+    const pattern = `%${filters.q.trim()}%`;
+    conditions.push(
+      // @ts-expect-error or() return type is compatible at runtime
+      or(
+        ilike(schema.products.title, pattern),
+        ilike(schema.products.articleNo, pattern),
+        ilike(schema.products.productGroup, pattern)
+      )
+    );
+  }
+
+  const rows = await db
+    .select()
+    .from(schema.products)
+    .where(and(...conditions))
+    .orderBy(asc(schema.products.title));
+  return hydrate(rows);
 }
 
-export function discountPercent(p: Product): number {
-  if (!p.rrpUsd || p.rrpUsd <= 0) return 0;
-  return Math.round(((p.rrpUsd - p.priceUsd) / p.rrpUsd) * 100);
+export async function getProductBySlug(slug: string): Promise<Product | undefined> {
+  const rows = await db
+    .select()
+    .from(schema.products)
+    .where(and(eq(schema.products.id, slug), eq(schema.products.active, true)))
+    .limit(1);
+  if (rows.length === 0) return undefined;
+  const [p] = await hydrate(rows);
+  return p;
 }
 
-export function formatUsd(n: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+export async function getAllProductSlugs(): Promise<string[]> {
+  const rows = await db
+    .select({ id: schema.products.id })
+    .from(schema.products)
+    .where(eq(schema.products.active, true));
+  return rows.map((r) => r.id);
 }
+
+export async function uniqueValuesFor(
+  column: "division" | "gender" | "sportsCode"
+): Promise<string[]> {
+  const col =
+    column === "division"
+      ? schema.products.division
+      : column === "gender"
+        ? schema.products.gender
+        : schema.products.sportsCode;
+  const rows = await db
+    .selectDistinct({ v: col })
+    .from(schema.products)
+    .where(eq(schema.products.active, true))
+    .orderBy(asc(col));
+  return rows.map((r) => r.v as string).filter(Boolean);
+}
+
+/**
+ * Pick one representative cover image per category for the lookbook tiles.
+ * Returns a map of facet=>imageUrl. Falls back to any product image if a
+ * specific match isn't available.
+ */
+export async function getCategoryHero(
+  facet: "division" | "gender",
+  value: string
+): Promise<{ url: string; slug: string; title: string } | null> {
+  const col = facet === "division" ? schema.products.division : schema.products.gender;
+  const rows = await db
+    .select({
+      id: schema.products.id,
+      title: schema.products.title,
+      url: schema.productImages.url,
+    })
+    .from(schema.products)
+    .innerJoin(
+      schema.productImages,
+      and(
+        eq(schema.productImages.productId, schema.products.id),
+        eq(schema.productImages.position, 1)
+      )
+    )
+    .where(
+      and(
+        eq(schema.products.active, true),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        eq(col as any, value as any)
+      )
+    )
+    .limit(8);
+  if (rows.length === 0) return null;
+  // Deterministic pick: hash of value so the same value always gets the same image
+  const pick = rows[Math.abs(hash(value)) % rows.length];
+  return { url: pick.url, slug: pick.id, title: pick.title };
+}
+
+function hash(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h << 5) - h + s.charCodeAt(i);
+  return h;
+}
+
+/**
+ * Latest-added products (proxy for "Just In") — by updatedAt desc.
+ */
+export async function getJustInProducts(limit = 8): Promise<Product[]> {
+  const rows = await db
+    .select()
+    .from(schema.products)
+    .where(eq(schema.products.active, true))
+    .orderBy(sql`${schema.products.updatedAt} DESC NULLS LAST`)
+    .limit(limit);
+  return hydrate(rows);
+}
+
+/**
+ * Biggest discounts for "Last Chance" section. We compute (rrp - price) / rrp
+ * on the DB side to avoid pulling everything.
+ */
+export async function getBiggestDiscounts(limit = 8): Promise<Product[]> {
+  const rows = await db
+    .select()
+    .from(schema.products)
+    .where(
+      and(
+        eq(schema.products.active, true),
+        sql`${schema.products.rrpUsd} > 0`
+      )
+    )
+    .orderBy(
+      sql`(${schema.products.rrpUsd} - ${schema.products.priceUsd}) / NULLIF(${schema.products.rrpUsd}, 0) DESC`
+    )
+    .limit(limit);
+  return hydrate(rows);
+}
+
+export async function getRelatedProducts(
+  productId: string,
+  productGroup: string,
+  limit = 4
+): Promise<Product[]> {
+  const rows = await db
+    .select()
+    .from(schema.products)
+    .where(
+      and(
+        eq(schema.products.active, true),
+        eq(schema.products.productGroup, productGroup),
+        sql`${schema.products.id} != ${productId}`
+      )
+    )
+    .limit(limit);
+  return hydrate(rows);
+}
+

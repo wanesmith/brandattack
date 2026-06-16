@@ -1,41 +1,76 @@
 "use client";
 import { useState } from "react";
-import type { Variant } from "@/lib/products";
+import { useCart } from "@/lib/cart-store";
+import type { Product } from "@/lib/products";
 
-export function SizeSelector({ variants }: { variants: Variant[] }) {
-  const [selected, setSelected] = useState<string | null>(null);
-  const selectedVariant = variants.find((v) => v.sku === selected) ?? null;
+export function SizeSelector({ product }: { product: Product }) {
+  const [selectedSku, setSelectedSku] = useState<string | null>(null);
+  const [justAdded, setJustAdded] = useState(false);
+  const add = useCart((s) => s.add);
+
+  const variants = product.variants;
+  const selectedVariant = variants.find((v) => v.sku === selectedSku) ?? null;
 
   if (variants.length === 0) {
-    return <div className="text-sm text-[var(--muted)]">Out of stock</div>;
+    return (
+      <div className="border border-rule bg-paper-warm p-4 text-center">
+        <p className="label-mono text-ink-soft">Sold out</p>
+      </div>
+    );
+  }
+
+  function handleAdd() {
+    if (!selectedVariant) return;
+    add({
+      sku: selectedVariant.sku,
+      productId: product.id,
+      productSlug: product.id,
+      title: product.title,
+      sizeLabel: selectedVariant.sizeLabel,
+      priceUsd: product.priceUsd,
+      imageUrl: product.images[0] ?? "",
+      maxStock: selectedVariant.stock,
+    });
+    setJustAdded(true);
+    setTimeout(() => setJustAdded(false), 1200);
   }
 
   return (
     <div>
-      <div className="mb-2 font-mono text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
-        Size
+      <div className="mb-3 flex items-baseline justify-between">
+        <span className="label-mono text-ink-faded">Size</span>
+        {selectedVariant && (
+          <span className="label-mono-sm text-ink-soft">
+            {selectedVariant.stock} in stock
+          </span>
+        )}
       </div>
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+
+      <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
         {variants.map((v) => {
-          const isSelected = selected === v.sku;
+          const isSelected = selectedSku === v.sku;
           const isOOS = v.stock <= 0;
+          const isLow = !isOOS && v.stock <= 2;
           return (
             <button
               key={v.sku}
               type="button"
               disabled={isOOS}
-              onClick={() => setSelected(v.sku)}
+              onClick={() => setSelectedSku(v.sku)}
               className={
-                "rounded-sm border px-3 py-2 text-sm font-medium transition-colors " +
+                "group relative border px-2 py-3 font-mono text-xs transition-all " +
                 (isOOS
-                  ? "cursor-not-allowed border-[var(--border)] text-[var(--muted)] line-through opacity-50"
+                  ? "cursor-not-allowed border-rule text-ink-faded line-through opacity-50"
                   : isSelected
-                    ? "border-[var(--accent)] bg-[var(--accent)] text-black"
-                    : "border-[var(--border)] hover:border-[var(--accent)]")
+                    ? "border-ink bg-ink text-paper"
+                    : "border-rule bg-paper text-ink hover:border-ink")
               }
               title={isOOS ? "Sold out" : `${v.stock} in stock`}
             >
               {v.sizeLabel}
+              {isLow && (
+                <span className="absolute -right-1 -top-1 inline-block h-1.5 w-1.5 rounded-full bg-accent" />
+              )}
             </button>
           );
         })}
@@ -43,14 +78,24 @@ export function SizeSelector({ variants }: { variants: Variant[] }) {
 
       <button
         type="button"
+        onClick={handleAdd}
         disabled={!selectedVariant}
-        className="mt-6 w-full rounded-sm bg-[var(--accent)] px-6 py-3 font-mono text-sm font-bold uppercase tracking-wider text-black transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:bg-[var(--surface)] disabled:text-[var(--muted)]"
+        className={
+          "label-mono mt-8 flex w-full items-center justify-center gap-2 py-4 transition-colors " +
+          (selectedVariant
+            ? justAdded
+              ? "bg-[var(--success)] text-paper"
+              : "bg-ink text-paper hover:bg-accent"
+            : "cursor-not-allowed border border-rule bg-paper-warm text-ink-faded")
+        }
       >
-        {selectedVariant ? `Add to cart — ${selectedVariant.sizeLabel}` : "Select a size"}
+        {!selectedVariant
+          ? "Select a size"
+          : justAdded
+            ? "Added ✓"
+            : "Add to bag"}
+        {selectedVariant && !justAdded && <span aria-hidden>→</span>}
       </button>
-      <p className="mt-2 text-center text-xs text-[var(--muted)]">
-        Demo — checkout is not enabled yet
-      </p>
     </div>
   );
 }

@@ -1,37 +1,264 @@
 @import "tailwindcss";
 
+/* ------------------------------------------------------------------
+   Brandattack — Athletic White
+   Pure white sportswear backdrop with a single italic-serif accent.
+   Type: Manrope Black (display) · Manrope (body) · JetBrains Mono (labels)
+   Italic Instrument Serif used surgically — only for the wordmark and rare
+   "—" moments. No serif headlines.
+   ------------------------------------------------------------------ */
+
 :root {
-  --background: #0a0a0a;
-  --foreground: #f5f5f4;
-  --muted: #a3a3a3;
-  --accent: #ff3d00;
-  --surface: #141414;
-  --border: #262626;
+  /* Whites */
+  --paper: #ffffff;
+  --paper-warm: #f5f5f4;
+  --paper-deep: #e7e5e3;
+
+  /* Inks — closer to true black for that sportswear contrast */
+  --ink: #0a0a0a;
+  --ink-soft: #2a2a2a;
+  --ink-faded: #6e6e6e;
+  --ink-ghost: #a8a8a8;
+
+  /* Hairlines */
+  --rule: #d4d4d2;
+  --rule-soft: #e7e5e3;
+
+  /* Single accent kept warm — same as before, used sparingly */
+  --accent: #d83c1f;
+  --accent-deep: #a82d14;
+  --accent-soft: #f4d8d0;
+
+  /* Dark inverse */
+  --ink-bg: #0a0a0a;
+  --ink-bg-soft: #161616;
+  --ink-bg-rule: #2a2a2a;
+  --ink-bg-text: #e5e5e5;
+
+  --success: #1f6b3a;
+  --error: #c33522;
+
+  /* Backwards-compat aliases (cart/admin still use these names) */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --muted: var(--ink-faded);
+  --surface: var(--paper-warm);
+  --border: var(--rule);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
+  --color-background: var(--paper);
+  --color-foreground: var(--ink);
+  --color-paper: var(--paper);
+  --color-paper-warm: var(--paper-warm);
+  --color-paper-deep: var(--paper-deep);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faded: var(--ink-faded);
+  --color-ink-ghost: var(--ink-ghost);
+  --color-rule: var(--rule);
+  --color-rule-soft: var(--rule-soft);
   --color-accent: var(--accent);
-  --color-surface: var(--surface);
-  --color-border: var(--border);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-accent-deep: var(--accent-deep);
+  --color-accent-soft: var(--accent-soft);
+  --color-ink-bg: var(--ink-bg);
+  --color-ink-bg-soft: var(--ink-bg-soft);
+  --color-ink-bg-text: var(--ink-bg-text);
+  --color-muted: var(--ink-faded);
+  --color-surface: var(--paper-warm);
+  --color-border: var(--rule);
+  --font-display: var(--font-display), Georgia, serif;
+  --font-sans: var(--font-sans), -apple-system, system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
+}
+
+/* ----------------------------- BASE ------------------------------- */
+
+html {
+  background: var(--paper);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans), -apple-system, system-ui, sans-serif;
+  font-weight: 400;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  position: relative;
 }
 
 ::selection {
-  background: var(--accent);
-  color: #0a0a0a;
+  background: var(--ink);
+  color: var(--paper);
 }
 
-/* Tighter, brand-y headings */
-h1, h2, h3 {
-  letter-spacing: -0.02em;
+/* ----------------------------- TYPE ------------------------------- */
+
+/* Display — heavy sans, tight tracking, ALL CAPS feel even when lowercase */
+.font-display {
+  font-family: var(--font-sans), -apple-system, system-ui, sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.035em;
+  line-height: 0.92;
+  text-transform: uppercase;
+}
+
+/* Italic serif accent — used ONLY for the wordmark and rare emphasis moments */
+.font-display-italic {
+  font-family: var(--font-display), Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  text-transform: none;
+}
+
+/* Compressed-feel display (when uppercase isn't right) */
+.font-headline {
+  font-family: var(--font-sans), -apple-system, system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1;
+}
+
+.label-mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.label-mono-sm {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+/* ------------------------------ UTIL ------------------------------ */
+
+.hairline {
+  background: var(--rule);
+  height: 1px;
+  width: 100%;
+}
+.hairline-ink {
+  background: var(--ink);
+  height: 1px;
+  width: 100%;
+}
+
+/* Three-stripe motif — Adidas signature, used as section decoration */
+.stripes-3 {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.stripes-3 > span {
+  display: block;
+  height: 3px;
+  background: currentColor;
+}
+.stripes-3.lg > span {
+  height: 6px;
+}
+.stripes-3.sm > span {
+  height: 2px;
+  gap: 2px;
+}
+
+/* Horizontal stripe trio (for borders / decorations) */
+.stripes-row {
+  display: flex;
+  gap: 4px;
+  height: 18px;
+  align-items: center;
+}
+.stripes-row > span {
+  width: 36px;
+  height: 100%;
+  background: currentColor;
+  transform: skewX(-12deg);
+}
+
+/* Smooth reveal on first paint */
+@keyframes ba-reveal {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.reveal { animation: ba-reveal 0.85s cubic-bezier(0.2, 0.6, 0.1, 1) both; }
+.reveal-d1 { animation-delay: 0.05s; }
+.reveal-d2 { animation-delay: 0.15s; }
+.reveal-d3 { animation-delay: 0.25s; }
+.reveal-d4 { animation-delay: 0.35s; }
+.reveal-d5 { animation-delay: 0.5s; }
+
+/* Marquee (announcement bar) */
+@keyframes ba-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.marquee-track { animation: ba-marquee 60s linear infinite; }
+
+/* Product card hover image-swap */
+.swap-base { transition: opacity 500ms cubic-bezier(0.2, 0.6, 0.1, 1); }
+.group:hover .swap-base { opacity: 0; }
+.swap-hover { opacity: 0; transition: opacity 500ms cubic-bezier(0.2, 0.6, 0.1, 1); }
+.group:hover .swap-hover { opacity: 1; }
+
+/* Decorative N. number tag — italic-serif accent moment */
+.section-number {
+  font-family: var(--font-display), Georgia, serif;
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--accent);
+}
+
+/* Hide scrollbar on horizontal scrollers */
+.scroll-row { scrollbar-width: none; }
+.scroll-row::-webkit-scrollbar { display: none; }
+
+/* Adidas-style solid CTA */
+.btn-solid {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 1rem 1.5rem;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid var(--ink);
+  transition: all 200ms ease;
+}
+.btn-solid:hover {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  background: transparent;
+  color: var(--ink);
+  padding: 1rem 1.5rem;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid var(--ink);
+  transition: all 200ms ease;
+}
+.btn-outline:hover {
+  background: var(--ink);
+  color: var(--paper);
 }
