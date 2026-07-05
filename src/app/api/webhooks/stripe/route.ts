@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import type Stripe from "stripe";
 import { db, schema } from "@/db";
 import { requireStripe } from "@/lib/stripe";
+import { getStripeWebhookSecret } from "@/lib/settings";
 
 // Stripe sends raw body + signature header; Next.js gives us text via req.text().
 // Don't parse JSON before verification.
@@ -10,15 +11,15 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   const sig = req.headers.get("stripe-signature");
-  const whSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const whSecret = await getStripeWebhookSecret();
   if (!sig) return NextResponse.json({ error: "Missing stripe-signature" }, { status: 400 });
   if (!whSecret)
     return NextResponse.json(
-      { error: "STRIPE_WEBHOOK_SECRET is not configured" },
+      { error: "Webhook signing secret is not configured (Admin → Settings or STRIPE_WEBHOOK_SECRET)" },
       { status: 500 }
     );
 
-  const stripe = requireStripe();
+  const stripe = await requireStripe();
   const raw = await req.text();
 
   let event: Stripe.Event;
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
 }
 
 async function handleCompleted(session: Stripe.Checkout.Session) {
-  const stripe = requireStripe();
+  const stripe = await requireStripe();
 
   // Idempotency: if we already wrote this order, exit.
   const existing = await db
@@ -128,7 +129,7 @@ async function handleCompleted(session: Stripe.Checkout.Session) {
         })
         .from(schema.variants)
         .innerJoin(schema.products, eq(schema.products.id, schema.variants.productId))
-        .where(sql`${schema.variants.sku} = ANY(${skuList})`);
+        .where(inArray(schema.variants.sku, skuList));
 
       const byKsu = new Map(variantRows.map((v) => [v.sku, v]));
       for (const c of cart) {

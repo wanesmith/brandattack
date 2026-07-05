@@ -162,6 +162,58 @@ export const facetValues = pgTable(
   ]
 );
 
+// Customer accounts for the storefront. Separate from the admin console
+// (which uses a single shared password). Email is stored lower-cased so the
+// unique constraint is effectively case-insensitive.
+export const users = pgTable(
+  "users",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    email: text("email").notNull().unique(),
+    passwordHash: text("password_hash").notNull(),
+    name: text("name"),
+    emailVerified: boolean("email_verified").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [index("idx_users_email").on(t.email)]
+);
+
+// Single-use tokens for email verification and password reset. We store only
+// the SHA-256 hash of the token; the raw value lives only in the emailed link.
+export const authTokens = pgTable(
+  "auth_tokens",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: text("type").notNull(), // "verify_email" | "password_reset"
+    tokenHash: text("token_hash").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_auth_tokens_user").on(t.userId),
+    index("idx_auth_tokens_hash").on(t.tokenHash),
+  ]
+);
+
+// Site configuration — key/value store edited from the admin Settings page.
+// Holds branding (site name, wordmark, tagline, announcements, support email)
+// and API credentials (Stripe keys). Secrets stored here take precedence over
+// the matching env var; an empty/absent row falls back to env.
+export const settings = pgTable("settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull().default(""),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .default(sql`now()`),
+});
+
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
 export type Variant = typeof variants.$inferSelect;
@@ -171,3 +223,7 @@ export type Order = typeof orders.$inferSelect;
 export type OrderItem = typeof orderItems.$inferSelect;
 export type Facet = typeof facets.$inferSelect;
 export type FacetValue = typeof facetValues.$inferSelect;
+export type Setting = typeof settings.$inferSelect;
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+export type AuthToken = typeof authTokens.$inferSelect;

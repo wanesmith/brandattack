@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getBranding } from "@/lib/settings";
 
 const COUNTRIES = [
   { code: "SG", name: "Singapore" },
@@ -13,7 +14,8 @@ const COUNTRIES = [
   { code: "KR", name: "South Korea" },
 ];
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  const branding = await getBranding();
   return (
     <footer className="relative z-[2] mt-32 bg-ink-bg text-ink-bg-text">
       {/* Newsletter band */}
@@ -81,12 +83,20 @@ export function SiteFooter() {
           {/* Wordmark */}
           <div className="lg:col-span-4">
             <div className="font-display text-4xl leading-none">
-              BRAND<span className="font-display-italic text-accent">attack</span>
-              <span className="text-accent">.</span>
+              {branding.wordmarkLead}
+              <span className="font-display-italic text-accent">{branding.wordmarkAccent}</span>
             </div>
             <p className="mt-4 max-w-xs text-sm text-[var(--ink-ghost)]">
               Brand names. Outlet prices. No middlemen between the source and your wardrobe.
             </p>
+            {branding.supportEmail && (
+              <a
+                href={`mailto:${branding.supportEmail}`}
+                className="mt-4 inline-block text-sm text-[var(--ink-ghost)] hover:text-paper"
+              >
+                {branding.supportEmail}
+              </a>
+            )}
             <p className="label-mono-sm mt-6 text-[var(--ink-ghost)]">
               EST. 2026 · SINGAPORE
             </p>
@@ -145,7 +155,7 @@ export function SiteFooter() {
       {/* Bottom strip */}
       <div className="border-t border-[var(--ink-bg-rule)]">
         <div className="mx-auto flex max-w-[1400px] flex-col items-start justify-between gap-4 px-6 py-6 text-xs text-[var(--ink-ghost)] sm:flex-row sm:items-center">
-          <div>© {new Date().getFullYear()} Brandattack. Authentic resold goods. All trademarks property of their respective owners.</div>
+          <div>© {new Date().getFullYear()} {branding.siteName}. Authentic resold goods. All trademarks property of their respective owners.</div>
           <div className="flex flex-wrap gap-x-5 gap-y-1">
             <Link href="/about" className="hover:text-paper">
               Terms

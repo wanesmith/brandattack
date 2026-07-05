@@ -1,29 +1,57 @@
 import Link from "next/link";
 import Image from "next/image";
-import { asc, count, eq, ilike, or, sql } from "drizzle-orm";
+import { and, asc, count, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ q?: string; page?: string }>;
+type SearchParams = Promise<{
+  q?: string;
+  division?: string;
+  gender?: string;
+  status?: string;
+  page?: string;
+}>;
 
 const PAGE_SIZE = 25;
+
+const DIVISIONS = schema.divisionEnum.enumValues;
+const GENDERS = schema.genderEnum.enumValues;
+const STATUSES = ["all", "active", "hidden"] as const;
 
 export default async function ProductsAdmin({
   searchParams,
 }: {
   searchParams: SearchParams;
 }) {
-  const { q = "", page: pageStr = "1" } = await searchParams;
-  const page = Math.max(1, parseInt(pageStr, 10) || 1);
+  const sp = await searchParams;
+  const q = sp.q?.trim() ?? "";
+  const division = (DIVISIONS as readonly string[]).includes(sp.division ?? "")
+    ? (sp.division as (typeof DIVISIONS)[number])
+    : "";
+  const gender = (GENDERS as readonly string[]).includes(sp.gender ?? "")
+    ? (sp.gender as (typeof GENDERS)[number])
+    : "";
+  const status = (STATUSES as readonly string[]).includes(sp.status ?? "")
+    ? (sp.status as (typeof STATUSES)[number])
+    : "all";
+  const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
   const offset = (page - 1) * PAGE_SIZE;
 
-  const whereClause = q
-    ? or(
+  const conditions = [];
+  if (q) {
+    conditions.push(
+      or(
         ilike(schema.products.title, `%${q}%`),
         ilike(schema.products.articleNo, `%${q}%`)
       )
-    : undefined;
+    );
+  }
+  if (division) conditions.push(eq(schema.products.division, division));
+  if (gender) conditions.push(eq(schema.products.gender, gender));
+  if (status === "active") conditions.push(eq(schema.products.active, true));
+  if (status === "hidden") conditions.push(eq(schema.products.active, false));
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
   const baseQuery = db.select().from(schema.products);
   const rows = await (whereClause ? baseQuery.where(whereClause) : baseQuery)
@@ -46,7 +74,7 @@ export default async function ProductsAdmin({
             stock: sql<number>`COALESCE(SUM(${schema.variants.stock}), 0)::int`,
           })
           .from(schema.variants)
-          .where(sql`${schema.variants.productId} = ANY(${productIds})`)
+          .where(inArray(schema.variants.productId, productIds))
           .groupBy(schema.variants.productId)
       : [];
   const statsByProduct = new Map(variantStats.map((v) => [v.productId, v]));
@@ -57,12 +85,28 @@ export default async function ProductsAdmin({
           .select({ productId: schema.productImages.productId, url: schema.productImages.url })
           .from(schema.productImages)
           .where(
-            sql`${schema.productImages.productId} = ANY(${productIds}) AND ${schema.productImages.position} = 1`
+            and(
+              inArray(schema.productImages.productId, productIds),
+              eq(schema.productImages.position, 1)
+            )
           )
       : [];
   const imageByProduct = new Map(firstImagesRows.map((r) => [r.productId, r.url]));
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // Preserve active filters across pagination.
+  const filterParams: Record<string, string> = {};
+  if (q) filterParams.q = q;
+  if (division) filterParams.division = division;
+  if (gender) filterParams.gender = gender;
+  if (status !== "all") filterParams.status = status;
+  const hasFilters = Object.keys(filterParams).length > 0;
+  const pageHref = (p: number) =>
+    `/admin/products?${new URLSearchParams({ ...filterParams, page: String(p) })}`;
+
+  const selectClass =
+    "rounded-sm border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none";
 
   return (
     <div>
@@ -79,14 +123,53 @@ export default async function ProductsAdmin({
         {total.toLocaleString()} total · page {page} of {totalPages}
       </p>
 
-      <form className="mt-5">
+      <form className="mt-5 flex flex-wrap items-center gap-3">
         <input
           type="search"
           name="q"
           defaultValue={q}
           placeholder="Search by title or ArticleNo…"
-          className="w-full max-w-md rounded-sm border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none"
+          className="min-w-[16rem] flex-1 rounded-sm border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none"
         />
+
+        <select name="division" defaultValue={division} className={selectClass} aria-label="Division">
+          <option value="">All divisions</option>
+          {DIVISIONS.map((d) => (
+            <option key={d} value={d}>
+              {d.charAt(0) + d.slice(1).toLowerCase()}
+            </option>
+          ))}
+        </select>
+
+        <select name="gender" defaultValue={gender} className={selectClass} aria-label="Gender">
+          <option value="">All genders</option>
+          {GENDERS.map((g) => (
+            <option key={g} value={g}>
+              {g.charAt(0) + g.slice(1).toLowerCase()}
+            </option>
+          ))}
+        </select>
+
+        <select name="status" defaultValue={status} className={selectClass} aria-label="Status">
+          <option value="all">All statuses</option>
+          <option value="active">Active</option>
+          <option value="hidden">Hidden</option>
+        </select>
+
+        <button
+          type="submit"
+          className="rounded-sm border border-[var(--accent)] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-[var(--accent)] hover:bg-[var(--accent)] hover:text-black"
+        >
+          Apply
+        </button>
+        {hasFilters && (
+          <Link
+            href="/admin/products"
+            className="font-mono text-xs uppercase tracking-wider text-[var(--muted)] hover:text-[var(--accent)]"
+          >
+            Clear
+          </Link>
+        )}
       </form>
 
       <div className="mt-6 overflow-hidden rounded-md border border-[var(--border)] bg-[var(--surface)]">
@@ -154,7 +237,7 @@ export default async function ProductsAdmin({
       {totalPages > 1 && (
         <nav className="mt-4 flex items-center justify-between text-sm">
           <Link
-            href={`/admin/products?${new URLSearchParams({ ...(q && { q }), page: String(page - 1) })}`}
+            href={pageHref(page - 1)}
             className={
               "rounded border border-[var(--border)] px-3 py-1.5 " +
               (page <= 1 ? "pointer-events-none opacity-30" : "hover:border-[var(--accent)]")
@@ -166,7 +249,7 @@ export default async function ProductsAdmin({
             Page {page} / {totalPages}
           </span>
           <Link
-            href={`/admin/products?${new URLSearchParams({ ...(q && { q }), page: String(page + 1) })}`}
+            href={pageHref(page + 1)}
             className={
               "rounded border border-[var(--border)] px-3 py-1.5 " +
               (page >= totalPages ? "pointer-events-none opacity-30" : "hover:border-[var(--accent)]")

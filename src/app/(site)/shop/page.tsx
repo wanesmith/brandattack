@@ -6,7 +6,7 @@ import { getActiveFacets } from "@/lib/facets";
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 export const metadata = {
-  title: "Shop — Brandattack",
+  title: "Shop — Brand Stoxx",
   description: "Authentic branded closeouts at end-of-line prices. Shop the full lot.",
 };
 

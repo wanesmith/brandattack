@@ -6,7 +6,7 @@ import { ClearCartOnMount } from "./ClearCartOnMount";
 type SearchParams = Promise<{ session_id?: string }>;
 
 export const metadata = {
-  title: "Thanks for your order — Brandattack",
+  title: "Thanks for your order — Brand Stoxx",
   robots: { index: false },
 };
 

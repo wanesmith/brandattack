@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "About — Brandattack",
-  description: "How Brandattack sources authentic branded inventory at wholesale prices.",
+  title: "About — Brand Stoxx",
+  description: "How Brand Stoxx sources authentic branded inventory at wholesale prices.",
 };
 
 const CHAPTERS = [

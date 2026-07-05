@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { requireStripe } from "@/lib/stripe";
+import { getCurrentUser } from "@/lib/customer-auth";
 
 type Body = {
   items: { sku: string; qty: number }[];
@@ -21,6 +22,21 @@ export async function POST(req: Request) {
 }
 
 async function handle(req: Request) {
+  // Checkout requires a signed-in, email-verified customer.
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json(
+      { error: "Please sign in to check out.", code: "auth_required" },
+      { status: 401 }
+    );
+  }
+  if (!user.emailVerified) {
+    return NextResponse.json(
+      { error: "Verify your email before checking out.", code: "email_unverified" },
+      { status: 403 }
+    );
+  }
+
   let body: Body;
   try {
     body = await req.json();
@@ -100,7 +116,7 @@ async function handle(req: Request) {
     req.headers.get("origin") ??
     "http://localhost:3000";
 
-  const stripe = requireStripe();
+  const stripe = await requireStripe();
 
   // Build Stripe line items
   const lineItems = rows.map((r) => {
@@ -123,6 +139,7 @@ async function handle(req: Request) {
     mode: "payment",
     line_items: lineItems,
     payment_method_types: ["card"],
+    customer_email: user.email,
     billing_address_collection: "required",
     shipping_address_collection: {
       // Asia-focused launch; extend as new markets come online.

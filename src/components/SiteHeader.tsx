@@ -1,13 +1,7 @@
 import Link from "next/link";
 import { CartButton } from "@/components/CartButton";
-
-const ANNOUNCEMENTS = [
-  "Free shipping across Asia over $150",
-  "Authentic guarantee",
-  "Up to 70% off RRP",
-  "New lot inbound · Q3 2026",
-  "21,082 units · 2,290 styles · sea-freighted from Singapore",
-];
+import { getBranding } from "@/lib/settings";
+import { getCurrentUser } from "@/lib/customer-auth";
 
 const PRIMARY_NAV = [
   { label: "Men", href: "/shop?gender=MEN" },
@@ -19,14 +13,18 @@ const PRIMARY_NAV = [
   { label: "Sale", href: "/shop" },
 ];
 
-export function SiteHeader() {
+export async function SiteHeader() {
+  const branding = await getBranding();
+  const user = await getCurrentUser();
+  const announcements =
+    branding.announcements.length > 0 ? branding.announcements : [branding.siteName];
   return (
     <header className="relative z-20 border-b border-ink bg-paper">
       {/* Announcement marquee — black bar at top, white text, Adidas style */}
       <div className="overflow-hidden bg-ink">
         <div className="relative flex h-8 items-center">
           <div className="marquee-track flex shrink-0 whitespace-nowrap">
-            {[...ANNOUNCEMENTS, ...ANNOUNCEMENTS, ...ANNOUNCEMENTS].map((text, i) => (
+            {[...announcements, ...announcements, ...announcements].map((text, i) => (
               <span
                 key={i}
                 className="label-mono-sm flex items-center gap-3 px-6 text-paper/80"
@@ -41,10 +39,10 @@ export function SiteHeader() {
 
       {/* Main bar */}
       <div className="mx-auto flex max-w-[1400px] items-center gap-8 px-6 py-4">
-        {/* Wordmark — heavy sans with italic-serif accent on "attack." */}
+        {/* Wordmark — heavy sans lead with an italic-serif accent. */}
         <Link href="/" className="flex items-baseline gap-1 tracking-tight">
-          <span className="font-display text-2xl">BRAND</span>
-          <span className="font-display-italic text-2xl text-accent">attack.</span>
+          <span className="font-display text-2xl">{branding.wordmarkLead}</span>
+          <span className="font-display-italic text-2xl text-accent">{branding.wordmarkAccent}</span>
         </Link>
 
         {/* Center nav — ALL CAPS heavy sans, Adidas style */}
@@ -74,8 +72,9 @@ export function SiteHeader() {
             </svg>
           </button>
           <Link
-            href="/admin"
-            aria-label="Admin"
+            href={user ? "/account" : "/login"}
+            aria-label={user ? "Your account" : "Sign in"}
+            title={user ? "Your account" : "Sign in"}
             className="hidden h-9 w-9 items-center justify-center text-ink transition-colors hover:text-accent sm:flex"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

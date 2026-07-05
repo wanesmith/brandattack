@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ProductCard } from "@/components/ProductCard";
+import { getBranding } from "@/lib/settings";
 import {
   getAllProducts,
   getBiggestDiscounts,
@@ -9,8 +10,9 @@ import {
 } from "@/lib/products";
 
 export default async function Home() {
-  const [all, justIn, lastChance, heroMen, heroWomen, heroKids, heroFootwear, heroApparel] =
+  const [branding, all, justIn, lastChance, heroMen, heroWomen, heroKids, heroFootwear, heroApparel] =
     await Promise.all([
+      getBranding(),
       getAllProducts(),
       getJustInProducts(8),
       getBiggestDiscounts(8),
@@ -21,22 +23,37 @@ export default async function Home() {
       getCategoryHero("division", "APPAREL"),
     ]);
 
-  const leadImage = heroFootwear?.url ?? heroMen?.url ?? all[0]?.images[0] ?? null;
+  const { hero } = branding;
+  const autoImage = heroFootwear?.url ?? heroMen?.url ?? all[0]?.images[0] ?? null;
+  // Admin-set hero image wins; otherwise auto-pick from the catalogue.
+  const leadImage = hero.imageUrl || autoImage;
+  // A relative path can use Next's optimizer; an arbitrary pasted URL uses a
+  // plain <img> so it works without configuring remote image domains.
+  const heroIsRelative = leadImage?.startsWith("/") ?? false;
+  const heroLines = hero.heading.split("\n").filter((l) => l.trim().length > 0);
 
   return (
     <div className="relative">
       {/* ========== FULL-BLEED HERO — Adidas signature ========== */}
       <section className="relative h-[min(85vh,820px)] w-full overflow-hidden bg-ink">
-        {leadImage && (
-          <Image
-            src={leadImage}
-            alt=""
-            fill
-            sizes="100vw"
-            priority
-            className="reveal object-cover object-center opacity-90"
-          />
-        )}
+        {leadImage &&
+          (heroIsRelative ? (
+            <Image
+              src={leadImage}
+              alt=""
+              fill
+              sizes="100vw"
+              priority
+              className="reveal object-cover object-center opacity-90"
+            />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={leadImage}
+              alt=""
+              className="reveal absolute inset-0 h-full w-full object-cover object-center opacity-90"
+            />
+          ))}
         {/* Gradient legibility wash */}
         <div className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/30 to-transparent" />
 
@@ -48,16 +65,20 @@ export default async function Home() {
         {/* Bottom-aligned content — Adidas signature placement */}
         <div className="absolute inset-x-0 bottom-0 px-6 py-12 sm:py-16 lg:py-20">
           <div className="mx-auto max-w-[1400px]">
-            <p className="reveal label-mono text-paper/70">
-              N. 01 · The Singapore Lot · 2026
-            </p>
+            {hero.eyebrow && (
+              <p className="reveal label-mono text-paper/70">{hero.eyebrow}</p>
+            )}
             <h1 className="reveal reveal-d1 mt-4 font-display text-[clamp(2.75rem,9vw,8.5rem)] text-paper">
-              Authentic Adidas.<br />
-              Outlet prices.
+              {heroLines.map((line, i) => (
+                <span key={i}>
+                  {i > 0 && <br />}
+                  {line}
+                </span>
+              ))}
             </h1>
             <div className="reveal reveal-d2 mt-8 flex flex-wrap items-center gap-5">
-              <Link href="/shop" className="btn-solid !bg-paper !text-ink !border-paper hover:!bg-accent hover:!text-paper hover:!border-accent">
-                Shop the lot
+              <Link href={hero.ctaHref || "/shop"} className="btn-solid !bg-paper !text-ink !border-paper hover:!bg-accent hover:!text-paper hover:!border-accent">
+                {hero.ctaLabel || "Shop the lot"}
                 <span aria-hidden>→</span>
               </Link>
               <Link

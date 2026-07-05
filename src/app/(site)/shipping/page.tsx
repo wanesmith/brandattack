@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "Shipping — Brandattack",
-  description: "Brandattack ships across Asia. Rates, transit times, and customs handling.",
+  title: "Shipping — Brand Stoxx",
+  description: "Brand Stoxx ships across Asia. Rates, transit times, and customs handling.",
 };
 
 const ROWS: [string, string][] = [

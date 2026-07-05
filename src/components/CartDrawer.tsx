@@ -187,7 +187,9 @@ function QtyControl({
   );
 }
 
-async function safeJson(res: Response): Promise<{ url?: string; error?: string } | null> {
+async function safeJson(
+  res: Response
+): Promise<{ url?: string; error?: string; code?: string } | null> {
   try {
     return await res.json();
   } catch {
@@ -212,10 +214,18 @@ function CheckoutButton() {
         }),
       });
       const data = await safeJson(res);
+      // Not signed in → send to login and return to the shop afterwards.
+      if (res.status === 401 || data?.code === "auth_required") {
+        window.location.href = "/login?reason=checkout&next=/shop";
+        return;
+      }
+      // Signed in but email not verified → send to account to verify.
+      if (res.status === 403 || data?.code === "email_unverified") {
+        window.location.href = "/account";
+        return;
+      }
       if (!res.ok || !data?.url) {
-        throw new Error(
-          data?.error ?? `Could not start checkout (HTTP ${res.status})`
-        );
+        throw new Error(data?.error ?? `Could not start checkout (HTTP ${res.status})`);
       }
       window.location.href = data.url;
     } catch (e) {

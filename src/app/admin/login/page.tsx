@@ -4,7 +4,7 @@ import { ADMIN_COOKIE_NAME, isValidSessionCookie } from "@/lib/admin-auth";
 import { LoginForm } from "./LoginForm";
 
 export const metadata = {
-  title: "Sign in — Brandattack admin",
+  title: "Sign in — Brand Stoxx admin",
   robots: { index: false, follow: false },
 };
 

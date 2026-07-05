@@ -2,10 +2,11 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ADMIN_COOKIE_NAME, isValidSessionCookie } from "@/lib/admin-auth";
+import { getBranding } from "@/lib/settings";
 import { LogoutButton } from "./LogoutButton";
 
 export const metadata = {
-  title: "Admin — Brandattack",
+  title: "Admin — Brand Stoxx",
   robots: { index: false, follow: false },
 };
 
@@ -20,11 +21,14 @@ export default async function ProtectedAdminLayout({
     redirect("/admin/login");
   }
 
+  const branding = await getBranding();
+
   return (
     <div className="min-h-screen bg-[var(--background)]">
       <aside className="fixed inset-y-0 left-0 w-56 border-r border-[var(--border)] bg-[var(--surface)] p-5">
-        <Link href="/admin" className="font-mono text-base font-bold">
-          BRAND<span className="text-[var(--accent)]">ATTACK</span>
+        <Link href="/admin" className="font-mono text-base font-bold uppercase">
+          {branding.wordmarkLead}
+          <span className="text-[var(--accent)]">{branding.wordmarkAccent}</span>
           <div className="mt-1 text-[10px] font-normal uppercase tracking-[0.2em] text-[var(--muted)]">
             Admin console
           </div>
@@ -35,6 +39,7 @@ export default async function ProtectedAdminLayout({
           <NavLink href="/admin/products">Products</NavLink>
           <NavLink href="/admin/filters">Filters</NavLink>
           <NavLink href="/admin/orders">Orders</NavLink>
+          <NavLink href="/admin/settings">Settings</NavLink>
         </nav>
         <div className="absolute bottom-5 left-5 right-5 space-y-2">
           <Link

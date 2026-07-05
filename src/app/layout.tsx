@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Instrument_Serif, Manrope, JetBrains_Mono } from "next/font/google";
-import { CartDrawer } from "@/components/CartDrawer";
-import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
+import { getBranding } from "@/lib/settings";
 import "./globals.css";
 
 // Editorial display — Italian Sunday-supplement feel
@@ -30,17 +28,19 @@ const jetbrainsMono = JetBrains_Mono({
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://brandattack.vercel.app";
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: "Brandattack — branded closeouts, sea-freighted",
-  description:
-    "Authentic Adidas at end-of-line prices. 21,000+ units sourced direct from regional wholesalers. Shipped across Asia.",
-  openGraph: {
-    title: "Brandattack",
-    description: "Authentic branded closeouts. Shipped across Asia.",
-    type: "website",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { siteName, tagline } = await getBranding();
+  return {
+    metadataBase: new URL(siteUrl),
+    title: `${siteName} — branded closeouts, sea-freighted`,
+    description: tagline,
+    openGraph: {
+      title: siteName,
+      description: tagline,
+      type: "website",
+    },
+  };
+}
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
@@ -48,12 +48,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       lang="en"
       className={`${instrumentSerif.variable} ${manrope.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col">
-        <SiteHeader />
-        <main className="relative z-[2] flex-1">{children}</main>
-        <SiteFooter />
-        <CartDrawer />
-      </body>
+      <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );
 }

@@ -20,9 +20,9 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Params }) {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
-  if (!product) return { title: "Not found — Brandattack" };
+  if (!product) return { title: "Not found — Brand Stoxx" };
   return {
-    title: `${product.title} — Brandattack`,
+    title: `${product.title} — Brand Stoxx`,
     description: `${product.brand} ${product.productGroup.toLowerCase()} (${product.articleNo}) at ${discountPercent(product)}% off RRP.`,
     openGraph: {
       images: product.images.slice(0, 1),
