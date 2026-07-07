@@ -1,11 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { upload } from "@vercel/blob/client";
 
 type Field = {
   key: string;
   group: string;
   label: string;
-  type: "text" | "textarea" | "email" | "secret" | "select" | "number";
+  type: "text" | "textarea" | "email" | "secret" | "select" | "number" | "image";
   default: string;
   placeholder?: string;
   help?: string;
@@ -116,7 +117,9 @@ function FieldRow({
         {f.type === "secret" && <SecretBadge field={f} />}
       </label>
       <div>
-        {f.type === "textarea" ? (
+        {f.type === "image" ? (
+          <ImageField value={value} placeholder={f.placeholder} onChange={(v) => onChange(f.key, v)} />
+        ) : f.type === "textarea" ? (
           <textarea
             id={`f-${f.key}`}
             rows={f.key === "announcements" ? 6 : 3}
@@ -166,6 +169,83 @@ function FieldRow({
         )}
         {f.help && <p className="mt-1 text-xs text-[var(--muted)]">{f.help}</p>}
       </div>
+    </div>
+  );
+}
+
+function ImageField({
+  value,
+  placeholder,
+  onChange,
+}: {
+  value: string;
+  placeholder?: string;
+  onChange: (v: string) => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputClass =
+    "w-full rounded-sm border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none";
+
+  async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const blob = await upload(`hero/${file.name}`, file, {
+        access: "public",
+        handleUploadUrl: "/api/admin/upload",
+      });
+      onChange(blob.url);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Upload failed — is the Blob store connected?"
+      );
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  return (
+    <div>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={value}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          className={inputClass}
+        />
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+          className="shrink-0 rounded-sm border border-[var(--border)] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider hover:border-[var(--accent)] disabled:opacity-50"
+        >
+          {uploading ? "Uploading…" : "Upload"}
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          onChange={onPick}
+          className="hidden"
+        />
+      </div>
+      {error && <p className="mt-1 text-xs text-red-300">{error}</p>}
+      {value && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={value}
+          alt="Hero preview"
+          className="mt-3 h-28 w-full max-w-sm rounded-sm border border-[var(--border)] object-cover"
+        />
+      )}
     </div>
   );
 }

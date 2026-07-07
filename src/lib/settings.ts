@@ -5,8 +5,20 @@
 import { sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 
-export type SettingType = "text" | "textarea" | "email" | "secret" | "select" | "number";
-export type SettingGroup = "Branding" | "Homepage hero" | "Payments (Stripe)" | "Email";
+export type SettingType =
+  | "text"
+  | "textarea"
+  | "email"
+  | "secret"
+  | "select"
+  | "number"
+  | "image";
+export type SettingGroup =
+  | "Site"
+  | "Branding"
+  | "Homepage hero"
+  | "Payments (Stripe)"
+  | "Email";
 
 export type SettingDef = {
   key: string;
@@ -23,6 +35,27 @@ export type SettingDef = {
 };
 
 export const SETTING_DEFS: SettingDef[] = [
+  {
+    key: "maintenance_mode",
+    group: "Site",
+    label: "Maintenance mode",
+    type: "select",
+    default: "false",
+    options: [
+      { value: "false", label: "Off — storefront is live" },
+      { value: "true", label: "On — show maintenance page to visitors" },
+    ],
+    help: "When on, visitors see a maintenance page. The admin console stays open, and signed-in admins can still preview the storefront.",
+  },
+  {
+    key: "maintenance_message",
+    group: "Site",
+    label: "Maintenance message",
+    type: "textarea",
+    default:
+      "We're making some improvements and will be back very shortly. Thanks for your patience.",
+    help: "Shown on the maintenance page.",
+  },
   {
     key: "site_name",
     group: "Branding",
@@ -82,11 +115,11 @@ export const SETTING_DEFS: SettingDef[] = [
   {
     key: "hero_image_url",
     group: "Homepage hero",
-    label: "Hero image URL",
-    type: "text",
+    label: "Hero image",
+    type: "image",
     default: "",
     placeholder: "/products/HI5607-1.webp or https://…",
-    help: "Full-bleed background image. Use an uploaded product path (/products/…) or any image URL. Leave blank to auto-pick from the catalogue.",
+    help: "Full-bleed background. Upload an image, or paste a product path (/products/…) or any URL. Leave blank to auto-pick from the catalogue.",
   },
   {
     key: "hero_eyebrow",
@@ -250,6 +283,14 @@ export async function getAllSettings(): Promise<Record<string, string>> {
     console.warn("[settings] read failed, using defaults:", err);
   }
   return merged;
+}
+
+export async function getMaintenance(): Promise<{ enabled: boolean; message: string }> {
+  const s = await getAllSettings();
+  return {
+    enabled: s.maintenance_mode === "true",
+    message: s.maintenance_message || DEFAULTS.maintenance_message,
+  };
 }
 
 export type Branding = {
