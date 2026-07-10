@@ -26,10 +26,10 @@ export default async function ProtectedAdminLayout({
   return (
     <div className="min-h-screen bg-[var(--background)]">
       <aside className="fixed inset-y-0 left-0 w-56 border-r border-[var(--border)] bg-[var(--surface)] p-5">
-        <Link href="/admin" className="font-mono text-base font-bold uppercase">
+        <Link href="/admin" className="font-display text-xl tracking-tight">
           {branding.wordmarkLead}
-          <span className="text-[var(--accent)]">{branding.wordmarkAccent}</span>
-          <div className="mt-1 text-[10px] font-normal uppercase tracking-[0.2em] text-[var(--muted)]">
+          <span className="font-display-italic text-accent">{branding.wordmarkAccent}</span>
+          <div className="mt-1 font-mono text-[10px] font-normal uppercase tracking-[0.2em] text-[var(--muted)]">
             Admin console
           </div>
         </Link>
