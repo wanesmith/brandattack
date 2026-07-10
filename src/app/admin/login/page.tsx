@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ADMIN_COOKIE_NAME, isValidSessionCookie } from "@/lib/admin-auth";
+import { getBranding } from "@/lib/settings";
 import { LoginForm } from "./LoginForm";
 
 export const metadata = {
@@ -21,13 +22,15 @@ export default async function LoginPage({
   }
 
   const { error } = await searchParams;
+  const branding = await getBranding();
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="font-mono text-2xl font-bold">
-            BRAND<span className="text-[var(--accent)]">ATTACK</span>
+          <div className="font-mono text-2xl font-bold uppercase">
+            {branding.wordmarkLead}
+            <span className="text-[var(--accent)]">{branding.wordmarkAccent}</span>
           </div>
           <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.25em] text-[var(--muted)]">
             Admin console
