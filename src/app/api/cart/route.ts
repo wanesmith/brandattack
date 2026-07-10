@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { getCurrentUser } from "@/lib/customer-auth";
 
@@ -6,10 +7,14 @@ export const runtime = "nodejs";
 
 type IncomingItem = {
   sku?: unknown;
+  productId?: unknown;
+  productSlug?: unknown;
   title?: unknown;
   sizeLabel?: unknown;
-  qty?: unknown;
   priceUsd?: unknown;
+  imageUrl?: unknown;
+  qty?: unknown;
+  maxStock?: unknown;
 };
 type Body = { cartId?: unknown; items?: unknown };
 
@@ -41,10 +46,14 @@ export async function POST(req: Request) {
     .slice(0, 100)
     .map((i) => ({
       sku: String(i.sku).slice(0, 64),
+      productId: String(i.productId ?? "").slice(0, 64),
+      productSlug: String(i.productSlug ?? "").slice(0, 128),
       title: String(i.title ?? "").slice(0, 200),
       sizeLabel: String(i.sizeLabel ?? "").slice(0, 32),
-      qty: Math.min(Math.floor(Number(i.qty)), 9999),
       priceUsd: Number.isFinite(Number(i.priceUsd)) ? Number(i.priceUsd) : 0,
+      imageUrl: String(i.imageUrl ?? "").slice(0, 512),
+      qty: Math.min(Math.floor(Number(i.qty)), 9999),
+      maxStock: Number.isFinite(Number(i.maxStock)) ? Math.floor(Number(i.maxStock)) : 0,
     }));
 
   const itemCount = items.reduce((n, i) => n + i.qty, 0);
@@ -73,4 +82,28 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ ok: true });
+}
+
+// Restore a cart snapshot by id — used by the recovery link (/cart?recover=…).
+// The cart id is an unguessable client-generated token, so returning its own
+// contents to whoever holds the link is acceptable.
+export async function GET(req: Request) {
+  const cartId = new URL(req.url).searchParams.get("cartId")?.trim() ?? "";
+  if (!cartId || cartId.length > 64) {
+    return NextResponse.json({ error: "Invalid cartId" }, { status: 400 });
+  }
+  const rows = await db
+    .select({ items: schema.carts.items })
+    .from(schema.carts)
+    .where(eq(schema.carts.id, cartId))
+    .limit(1);
+  let items: unknown = [];
+  if (rows[0]) {
+    try {
+      items = JSON.parse(rows[0].items);
+    } catch {
+      items = [];
+    }
+  }
+  return NextResponse.json({ items: Array.isArray(items) ? items : [] });
 }

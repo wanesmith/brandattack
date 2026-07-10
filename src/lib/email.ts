@@ -135,6 +135,19 @@ export function passwordResetEmail(siteName: string, link: string): Omit<SendEma
   };
 }
 
+export function cartRecoveryEmail(siteName: string, link: string): Omit<SendEmailInput, "to"> {
+  return {
+    subject: `You left something in your cart — ${siteName}`,
+    html: layout(
+      siteName,
+      "Your cart is waiting",
+      "You left items in your cart. Tap below to pick up right where you left off — before your sizes sell out.",
+      { label: "Return to your cart", url: link }
+    ),
+    text: `You left items in your cart at ${siteName}.\nPick up where you left off:\n${link}`,
+  };
+}
+
 function logToConsole(from: string, input: SendEmailInput, reason: string) {
   console.log(
     [

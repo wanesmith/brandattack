@@ -1,6 +1,7 @@
 import { and, desc, gt, lt, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { formatUsd } from "@/lib/format";
+import { RecoverButton } from "./RecoverButton";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +66,7 @@ export default async function AbandonedCartsAdmin() {
               <th className="px-4 py-3">Units</th>
               <th className="px-4 py-3">Value</th>
               <th className="px-4 py-3">Last activity</th>
+              <th className="px-4 py-3">Recovery</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
@@ -93,13 +95,27 @@ export default async function AbandonedCartsAdmin() {
                   </td>
                   <td className="px-4 py-3">{c.itemCount}</td>
                   <td className="px-4 py-3">{formatUsd(Number(c.subtotalUsd))}</td>
-                  <td className="px-4 py-3 text-[var(--muted)]">{c.updatedAt.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-[var(--muted)]">
+                    {c.updatedAt.toLocaleString()}
+                    {c.recoverySentAt && (
+                      <div className="text-[11px] text-emerald-400">
+                        recovery sent {c.recoverySentAt.toLocaleString()}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <RecoverButton
+                      cartId={c.id}
+                      hasEmail={Boolean(c.email)}
+                      alreadySent={Boolean(c.recoverySentAt)}
+                    />
+                  </td>
                 </tr>
               );
             })}
             {carts.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-sm text-[var(--muted)]">
+                <td colSpan={6} className="px-4 py-10 text-center text-sm text-[var(--muted)]">
                   No abandoned carts right now.
                 </td>
               </tr>

@@ -24,6 +24,8 @@ type CartState = {
   remove: (sku: string) => void;
   updateQty: (sku: string, qty: number) => void;
   clear: () => void;
+  // Merge a recovered cart (from a recovery link) into the current cart.
+  hydrate: (items: CartItem[]) => void;
   openDrawer: () => void;
   closeDrawer: () => void;
   // derived
@@ -66,6 +68,18 @@ export const useCart = create<CartState>()(
             .filter((i) => i.qty > 0),
         })),
       clear: () => set({ items: [] }),
+      hydrate: (incoming) =>
+        set((state) => {
+          const bySku = new Map(state.items.map((i) => [i.sku, i]));
+          for (const it of incoming) {
+            if (!it?.sku) continue;
+            const existing = bySku.get(it.sku);
+            const cap = it.maxStock > 0 ? it.maxStock : it.qty;
+            const qty = Math.min(existing ? Math.max(existing.qty, it.qty) : it.qty, cap);
+            bySku.set(it.sku, { ...it, qty });
+          }
+          return { items: [...bySku.values()] };
+        }),
       openDrawer: () => set({ drawerOpen: true }),
       closeDrawer: () => set({ drawerOpen: false }),
       itemCount: () => get().items.reduce((n, i) => n + i.qty, 0),

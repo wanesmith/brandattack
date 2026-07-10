@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart-store";
+import { CART_ID_KEY } from "@/components/CartSync";
 import { formatUsd } from "@/lib/format";
 
 export default function CartPage() {
@@ -10,9 +11,37 @@ export default function CartPage() {
   const subtotal = useCart((s) => s.items.reduce((n, i) => n + i.qty * i.priceUsd, 0));
   const remove = useCart((s) => s.remove);
   const updateQty = useCart((s) => s.updateQty);
+  const hydrate = useCart((s) => s.hydrate);
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  // Recovery link (/cart?recover=<cartId>): pull the saved cart snapshot from
+  // the server and merge it in, so a customer can pick up where they left off
+  // even on a different device. Adopt that cart id so future syncs continue it.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const recover = params.get("recover");
+    if (!recover) return;
+    try {
+      localStorage.setItem(CART_ID_KEY, recover);
+    } catch {
+      /* ignore */
+    }
+    fetch(`/api/cart?cartId=${encodeURIComponent(recover)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (Array.isArray(d.items) && d.items.length > 0) hydrate(d.items);
+      })
+      .catch(() => {
+        /* best-effort */
+      })
+      .finally(() => {
+        params.delete("recover");
+        const qs = params.toString();
+        window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : ""));
+      });
+  }, [hydrate]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

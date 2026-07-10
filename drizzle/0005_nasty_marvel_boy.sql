@@ -1,0 +1,1 @@
+ALTER TABLE "carts" ADD COLUMN "recovery_sent_at" timestamp with time zone;

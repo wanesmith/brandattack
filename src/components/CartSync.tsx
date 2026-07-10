@@ -5,7 +5,7 @@ import { useCart } from "@/lib/cart-store";
 // Persists a lightweight cart snapshot to the server whenever the client cart
 // changes (debounced), so the admin can see abandoned carts. Renders nothing.
 // The cart id lives in localStorage alongside the zustand-persisted cart.
-const CART_ID_KEY = "brandattack-cart-id";
+export const CART_ID_KEY = "brandattack-cart-id";
 
 function getCartId(): string {
   try {
@@ -39,12 +39,18 @@ export function CartSync() {
     timer.current = setTimeout(() => {
       const payload = {
         cartId: getCartId(),
+        // Full item shape so an abandoned cart can be restored from a recovery
+        // link (see /api/cart GET + the cart page's recover handler).
         items: items.map((i) => ({
           sku: i.sku,
+          productId: i.productId,
+          productSlug: i.productSlug,
           title: i.title,
           sizeLabel: i.sizeLabel,
-          qty: i.qty,
           priceUsd: i.priceUsd,
+          imageUrl: i.imageUrl,
+          qty: i.qty,
+          maxStock: i.maxStock,
         })),
       };
       fetch("/api/cart", {

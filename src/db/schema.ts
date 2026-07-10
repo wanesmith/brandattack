@@ -228,6 +228,7 @@ export const carts = pgTable(
     items: text("items").notNull().default("[]"), // JSON: [{sku,title,sizeLabel,qty,priceUsd}]
     itemCount: integer("item_count").notNull().default(0),
     subtotalUsd: numeric("subtotal_usd", { precision: 10, scale: 2 }).notNull().default("0"),
+    recoverySentAt: timestamp("recovery_sent_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
