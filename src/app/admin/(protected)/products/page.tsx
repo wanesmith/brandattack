@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { and, asc, count, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
+import { formatUsd } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -93,6 +94,29 @@ export default async function ProductsAdmin({
       : [];
   const imageByProduct = new Map(firstImagesRows.map((r) => [r.productId, r.url]));
 
+  // Sales stats per product: units sold + revenue from orders that count as a
+  // sale (paid or shipped). order_items link to products via sku → variant.
+  const salesStats =
+    productIds.length > 0
+      ? await db
+          .select({
+            productId: schema.variants.productId,
+            units: sql<number>`COALESCE(SUM(${schema.orderItems.qty}), 0)::int`,
+            revenue: sql<number>`COALESCE(SUM(${schema.orderItems.qty} * ${schema.orderItems.unitPriceUsd}), 0)::float`,
+          })
+          .from(schema.orderItems)
+          .innerJoin(schema.orders, eq(schema.orders.id, schema.orderItems.orderId))
+          .innerJoin(schema.variants, eq(schema.variants.sku, schema.orderItems.sku))
+          .where(
+            and(
+              inArray(schema.variants.productId, productIds),
+              inArray(schema.orders.status, ["paid", "shipped"])
+            )
+          )
+          .groupBy(schema.variants.productId)
+      : [];
+  const salesByProduct = new Map(salesStats.map((s) => [s.productId, s]));
+
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   // Preserve active filters across pagination.
@@ -182,12 +206,15 @@ export default async function ProductsAdmin({
               <th className="px-4 py-3">Division</th>
               <th className="px-4 py-3">Price</th>
               <th className="px-4 py-3">Stock</th>
+              <th className="px-4 py-3">Sold</th>
+              <th className="px-4 py-3">Revenue</th>
               <th className="px-4 py-3">Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
             {rows.map((r) => {
               const stats = statsByProduct.get(r.id);
+              const sales = salesByProduct.get(r.id);
               const img = imageByProduct.get(r.id);
               return (
                 <tr key={r.id} className="hover:bg-[var(--background)]">
@@ -198,17 +225,15 @@ export default async function ProductsAdmin({
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-2">
-                    <Link href={`/p/${r.id}`} className="hover:text-[var(--accent)]">
-                      {r.title}
-                    </Link>
-                  </td>
+                  <td className="px-4 py-2 font-medium">{r.title}</td>
                   <td className="px-4 py-2 font-mono text-xs">{r.articleNo}</td>
                   <td className="px-4 py-2 text-[var(--muted)]">{r.division}</td>
-                  <td className="px-4 py-2">${Number(r.priceUsd).toFixed(0)}</td>
+                  <td className="px-4 py-2">{formatUsd(Number(r.priceUsd))}</td>
                   <td className="px-4 py-2">
                     {stats ? `${stats.stock} (${stats.variantCount} sz)` : "—"}
                   </td>
+                  <td className="px-4 py-2">{sales ? Number(sales.units).toLocaleString() : 0}</td>
+                  <td className="px-4 py-2">{formatUsd(sales ? Number(sales.revenue) : 0)}</td>
                   <td className="px-4 py-2">
                     <span
                       className={
@@ -225,7 +250,7 @@ export default async function ProductsAdmin({
             })}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-sm text-[var(--muted)]">
+                <td colSpan={9} className="px-4 py-10 text-center text-sm text-[var(--muted)]">
                   No products match that search.
                 </td>
               </tr>
