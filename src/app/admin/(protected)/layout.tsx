@@ -39,6 +39,7 @@ export default async function ProtectedAdminLayout({
           <NavLink href="/admin/products">Products</NavLink>
           <NavLink href="/admin/filters">Filters</NavLink>
           <NavLink href="/admin/orders">Orders</NavLink>
+          <NavLink href="/admin/abandoned-carts">Abandoned carts</NavLink>
           <NavLink href="/admin/settings">Settings</NavLink>
         </nav>
         <div className="absolute bottom-5 left-5 right-5 space-y-2">

@@ -214,6 +214,28 @@ export const settings = pgTable("settings", {
     .default(sql`now()`),
 });
 
+// Server-side snapshot of shopper carts, synced from the client cart store
+// whenever it changes. Powers the admin "Abandoned carts" view: a cart that
+// still has items but hasn't been touched for a while. The client clears the
+// cart (→ empty sync here) when a checkout completes, so converted carts drop
+// out of the abandoned list. `id` is a client-generated id kept in localStorage.
+export const carts = pgTable(
+  "carts",
+  {
+    id: text("id").primaryKey(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    email: text("email"),
+    items: text("items").notNull().default("[]"), // JSON: [{sku,title,sizeLabel,qty,priceUsd}]
+    itemCount: integer("item_count").notNull().default(0),
+    subtotalUsd: numeric("subtotal_usd", { precision: 10, scale: 2 }).notNull().default("0"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [index("idx_carts_updated").on(t.updatedAt)]
+);
+
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
 export type Variant = typeof variants.$inferSelect;
@@ -227,3 +249,4 @@ export type Setting = typeof settings.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type AuthToken = typeof authTokens.$inferSelect;
+export type Cart = typeof carts.$inferSelect;

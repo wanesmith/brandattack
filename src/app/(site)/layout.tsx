@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { CartDrawer } from "@/components/CartDrawer";
+import { CartSync } from "@/components/CartSync";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { getMaintenance } from "@/lib/settings";
@@ -28,6 +29,7 @@ export default async function SiteLayout({ children }: Readonly<{ children: Reac
         <main className="relative z-[2] flex-1">{children}</main>
         <SiteFooter />
         <CartDrawer />
+        <CartSync />
       </>
     );
   }
@@ -38,6 +40,7 @@ export default async function SiteLayout({ children }: Readonly<{ children: Reac
       <main className="relative z-[2] flex-1">{children}</main>
       <SiteFooter />
       <CartDrawer />
+      <CartSync />
     </>
   );
 }

@@ -29,6 +29,13 @@
       "when": 1783161959164,
       "tag": "0003_glossy_swordsman",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1783674719290,
+      "tag": "0004_overrated_prism",
+      "breakpoints": true
     }
   ]
 }
