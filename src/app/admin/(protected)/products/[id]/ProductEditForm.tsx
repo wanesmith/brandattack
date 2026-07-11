@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { upload } from "@vercel/blob/client";
 
 type Product = {
   id: string;
@@ -16,18 +17,55 @@ type Variant = { sku: string; sizeLabel: string; stock: number; reserved: number
 export function ProductEditForm({
   product,
   variants,
+  initialImages,
 }: {
   product: Product;
   variants: Variant[];
+  initialImages: string[];
 }) {
   const router = useRouter();
   const [form, setForm] = useState(product);
   const [stocks, setStocks] = useState<Record<string, number>>(
     Object.fromEntries(variants.map((v) => [v.sku, v.stock]))
   );
+  const [images, setImages] = useState<string[]>(initialImages);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+
+  async function onFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    setErr(null);
+    try {
+      const uploaded: string[] = [];
+      for (const file of Array.from(files)) {
+        const blob = await upload(`products/${product.id}/${file.name}`, file, {
+          access: "public",
+          handleUploadUrl: "/api/admin/upload",
+        });
+        uploaded.push(blob.url);
+      }
+      setImages((imgs) => [...imgs, ...uploaded].slice(0, 12));
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  function moveImage(i: number, dir: -1 | 1) {
+    setImages((imgs) => {
+      const j = i + dir;
+      if (j < 0 || j >= imgs.length) return imgs;
+      const next = [...imgs];
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
+  }
 
   function set<K extends keyof Product>(key: K, value: Product[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -44,6 +82,7 @@ export function ProductEditForm({
         body: JSON.stringify({
           ...form,
           variants: variants.map((v) => ({ sku: v.sku, stock: stocks[v.sku] ?? 0 })),
+          images,
         }),
       });
       const data = await res.json().catch(() => null);
@@ -68,6 +107,55 @@ export function ProductEditForm({
 
   return (
     <div className="mt-8 space-y-6">
+      <section className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-sm font-bold uppercase tracking-wider">Images</h2>
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            className="font-mono text-xs uppercase tracking-wider text-[var(--accent)] hover:underline disabled:opacity-50"
+          >
+            {uploading ? "Uploading…" : "+ Add images"}
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            multiple
+            hidden
+            onChange={(e) => onFiles(e.target.files)}
+          />
+        </div>
+        {images.length === 0 ? (
+          <p className="text-sm text-[var(--muted)]">
+            No images yet. The first image is the main one shown on the storefront.
+          </p>
+        ) : (
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+            {images.map((url, i) => (
+              <div
+                key={url}
+                className="group relative aspect-square overflow-hidden rounded-sm border border-[var(--border)] bg-[var(--background)]"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt="" className="h-full w-full object-cover" />
+                {i === 0 && (
+                  <span className="absolute left-1 top-1 rounded-sm bg-[var(--accent)] px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase text-black">
+                    Main
+                  </span>
+                )}
+                <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/60 p-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  <button type="button" onClick={() => moveImage(i, -1)} disabled={i === 0} className="px-1 text-white disabled:opacity-30" aria-label="Move earlier">←</button>
+                  <button type="button" onClick={() => setImages((imgs) => imgs.filter((_, idx) => idx !== i))} className="px-1 text-white hover:text-red-400" aria-label="Remove image">✕</button>
+                  <button type="button" onClick={() => moveImage(i, 1)} disabled={i === images.length - 1} className="px-1 text-white disabled:opacity-30" aria-label="Move later">→</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       <section className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-5">
         <h2 className="mb-4 text-sm font-bold uppercase tracking-wider">Details</h2>
         <div className="space-y-4">

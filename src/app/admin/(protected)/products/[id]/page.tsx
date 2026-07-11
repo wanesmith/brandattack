@@ -21,6 +21,12 @@ export default async function ProductDetail({ params }: { params: Params }) {
     .where(eq(schema.variants.productId, id))
     .orderBy(asc(schema.variants.size));
 
+  const images = await db
+    .select({ url: schema.productImages.url })
+    .from(schema.productImages)
+    .where(eq(schema.productImages.productId, id))
+    .orderBy(asc(schema.productImages.position));
+
   return (
     <div className="max-w-3xl">
       <Link
@@ -53,6 +59,7 @@ export default async function ProductDetail({ params }: { params: Params }) {
           stock: v.stock,
           reserved: v.reserved,
         }))}
+        initialImages={images.map((i) => i.url)}
       />
     </div>
   );

@@ -15,6 +15,7 @@ type Body = {
   rrpUsd?: unknown;
   active?: unknown;
   variants?: unknown;
+  images?: unknown;
 };
 
 const money = (v: unknown): string | null => {
@@ -61,6 +62,14 @@ export async function POST(req: Request) {
         .map((v) => ({ sku: String(v.sku), stock: Math.max(0, Math.floor(Number(v.stock))) }))
     : [];
 
+  // Images: full replacement of the ordered set when provided. `undefined`
+  // (key absent) leaves existing images untouched.
+  const images = Array.isArray(body.images)
+    ? (body.images as unknown[])
+        .filter((u): u is string => typeof u === "string" && u.trim().length > 0)
+        .slice(0, 12)
+    : null;
+
   await db.transaction(async (tx) => {
     await tx
       .update(schema.products)
@@ -80,6 +89,15 @@ export async function POST(req: Request) {
         .update(schema.variants)
         .set({ stock: v.stock })
         .where(and(eq(schema.variants.sku, v.sku), eq(schema.variants.productId, id)));
+    }
+
+    if (images !== null) {
+      await tx.delete(schema.productImages).where(eq(schema.productImages.productId, id));
+      if (images.length > 0) {
+        await tx.insert(schema.productImages).values(
+          images.map((url, i) => ({ productId: id, position: i + 1, url }))
+        );
+      }
     }
   });
 

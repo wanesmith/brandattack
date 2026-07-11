@@ -181,7 +181,8 @@ export function NewProductForm({
           ))}
         </div>
         <p className="mt-3 text-xs text-[var(--muted)]">
-          SKU is generated as &lt;article no&gt;-&lt;size&gt;. Images can be added later via Import lot.
+          SKU is generated as &lt;article no&gt;-&lt;size&gt;. After creating, you can upload images on
+          the product&apos;s edit page.
         </p>
       </section>
 
