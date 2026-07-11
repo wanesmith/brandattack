@@ -24,11 +24,17 @@ export async function generateMetadata({ params }: { params: Params }) {
   return {
     title: `${product.title} — Brand Stoxx`,
     description: `${product.brand} ${product.productGroup.toLowerCase()} (${product.articleNo}) at ${discountPercent(product)}% off RRP.`,
+    alternates: { canonical: `/p/${slug}` },
     openGraph: {
+      type: "website",
+      title: product.title,
       images: product.images.slice(0, 1),
     },
   };
 }
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.brandstoxx.com";
+const abs = (u: string) => (u.startsWith("http") ? u : `${SITE_URL}${u.startsWith("/") ? "" : "/"}${u}`);
 
 export default async function ProductPage({ params }: { params: Params }) {
   const { slug } = await params;
@@ -39,8 +45,33 @@ export default async function ProductPage({ params }: { params: Params }) {
   const saving = product.rrpUsd - product.priceUsd;
   const related = await getRelatedProducts(product.id, product.productGroup, 4);
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.title,
+    image: product.images.map(abs),
+    description:
+      product.description ||
+      `${product.brand} ${product.productGroup.toLowerCase()} (${product.articleNo}).`,
+    sku: product.articleNo,
+    mpn: product.articleNo,
+    brand: { "@type": "Brand", name: product.brand },
+    offers: {
+      "@type": "Offer",
+      url: `${SITE_URL}/p/${product.id}`,
+      priceCurrency: "USD",
+      price: Number(product.priceUsd).toFixed(2),
+      availability: "https://schema.org/InStock",
+      itemCondition: "https://schema.org/NewCondition",
+    },
+  };
+
   return (
     <div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Breadcrumb */}
       <div className="border-b border-rule">
         <nav className="label-mono-sm mx-auto flex max-w-[1400px] items-center gap-2 px-6 py-3 text-ink-faded">

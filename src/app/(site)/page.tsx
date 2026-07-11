@@ -49,8 +49,35 @@ export default async function Home() {
   const heroCta = hero.ctaLabel === HERO_DEFAULTS.cta ? t("home.shopCta") : hero.ctaLabel;
   const heroLines = heroHeading.split("\n").filter((l) => l.trim().length > 0);
 
+  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.brandstoxx.com";
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        name: branding.siteName,
+        url: SITE_URL,
+        logo: `${SITE_URL}/favicon.ico`,
+      },
+      {
+        "@type": "WebSite",
+        name: branding.siteName,
+        url: SITE_URL,
+        potentialAction: {
+          "@type": "SearchAction",
+          target: `${SITE_URL}/shop?q={search_term_string}`,
+          "query-input": "required name=search_term_string",
+        },
+      },
+    ],
+  };
+
   return (
     <div className="relative">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* ========== FULL-BLEED HERO — Adidas signature ========== */}
       <section className="relative h-[min(85vh,820px)] w-full overflow-hidden bg-ink">
         {leadImage &&
