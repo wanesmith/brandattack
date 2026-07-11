@@ -157,6 +157,27 @@ export const en = {
     sortPriceHigh: "Price: high to low",
     sortAlpha: "A → Z",
   },
+  home: {
+    heroEyebrow: "N. 01 · The Singapore Lot · 2026",
+    heroHeading: "Authentic Adidas.\nOutlet prices.",
+    heroHowItWorks: "How it works",
+    shopCta: "Shop the lot",
+    statUnits: "Units in lot",
+    statStyles: "Unique styles",
+    statAvgOff: "Avg off RRP",
+    shopByCategory: "Shop by category",
+    viewAll: "View all",
+    justIn: "Just in",
+    editorialEyebrow: "N. 03 · From the lot",
+    howDiscountWorks: "How the discount works",
+    discountBody:
+      "We buy whole pallets of end-of-line stock straight from regional wholesalers. No distributor markup. No regional reseller markup. No retail margin. What you pay is the warehouse price plus our thin operating cut.",
+    fullMethod: "The full method",
+    lastChance: "Last chance",
+    lastChanceSub: "The deepest discounts in the lot. Limited stock per size.",
+    allSale: "All sale",
+    seeAllStyles: "See all {count} styles",
+  },
 };
 
 export type Dictionary = typeof en;

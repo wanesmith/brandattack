@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ProductCard } from "@/components/ProductCard";
 import { getBranding } from "@/lib/settings";
+import { getT } from "@/lib/i18n/server";
 import {
   getAllProducts,
   getBiggestDiscounts,
@@ -10,6 +11,7 @@ import {
 } from "@/lib/products";
 
 export default async function Home() {
+  const t = await getT();
   const [branding, all, justIn, lastChance, heroMen, heroWomen, heroKids, heroFootwear, heroApparel] =
     await Promise.all([
       getBranding(),
@@ -30,7 +32,22 @@ export default async function Home() {
   // A relative path can use Next's optimizer; an arbitrary pasted URL uses a
   // plain <img> so it works without configuring remote image domains.
   const heroIsRelative = leadImage?.startsWith("/") ?? false;
-  const heroLines = hero.heading.split("\n").filter((l) => l.trim().length > 0);
+
+  // Hero copy is admin-editable (Homepage hero settings). When it's still the
+  // built-in default, show the translated version; a custom admin headline is
+  // shown as written (bespoke copy shouldn't be machine-translated). Defaults
+  // mirror lib/settings.ts.
+  const HERO_DEFAULTS = {
+    eyebrow: "N. 01 · The Singapore Lot · 2026",
+    heading: "Authentic Adidas.\nOutlet prices.",
+    cta: "Shop the lot",
+  };
+  const heroEyebrow =
+    hero.eyebrow === HERO_DEFAULTS.eyebrow ? t("home.heroEyebrow") : hero.eyebrow;
+  const heroHeading =
+    hero.heading === HERO_DEFAULTS.heading ? t("home.heroHeading") : hero.heading;
+  const heroCta = hero.ctaLabel === HERO_DEFAULTS.cta ? t("home.shopCta") : hero.ctaLabel;
+  const heroLines = heroHeading.split("\n").filter((l) => l.trim().length > 0);
 
   return (
     <div className="relative">
@@ -66,7 +83,7 @@ export default async function Home() {
         <div className="absolute inset-x-0 bottom-0 px-6 py-12 sm:py-16 lg:py-20">
           <div className="mx-auto max-w-[1400px]">
             {hero.eyebrow && (
-              <p className="reveal label-mono text-paper/70">{hero.eyebrow}</p>
+              <p className="reveal label-mono text-paper/70">{heroEyebrow}</p>
             )}
             <h1 className="reveal reveal-d1 mt-4 font-display text-[clamp(2.75rem,9vw,8.5rem)] text-paper">
               {heroLines.map((line, i) => (
@@ -78,14 +95,14 @@ export default async function Home() {
             </h1>
             <div className="reveal reveal-d2 mt-8 flex flex-wrap items-center gap-5">
               <Link href={hero.ctaHref || "/shop"} className="btn-solid !bg-paper !text-ink !border-paper hover:!bg-accent hover:!text-paper hover:!border-accent">
-                {hero.ctaLabel || "Shop the lot"}
+                {heroCta}
                 <span aria-hidden>→</span>
               </Link>
               <Link
                 href="/about"
                 className="text-sm font-bold uppercase tracking-wider text-paper/90 underline-offset-4 hover:text-paper hover:underline"
               >
-                How it works →
+                {t("home.heroHowItWorks")} →
               </Link>
             </div>
           </div>
@@ -95,9 +112,9 @@ export default async function Home() {
       {/* ========== STAT STRIP — under the hero, all-caps athletic ========== */}
       <section className="border-b border-ink bg-paper">
         <div className="mx-auto grid max-w-[1400px] grid-cols-3 divide-x divide-rule px-6">
-          <Stat number="21,082" label="Units in lot" />
-          <Stat number="2,290" label="Unique styles" />
-          <Stat number="−60%" label="Avg off RRP" />
+          <Stat number="21,082" label={t("home.statUnits")} />
+          <Stat number="2,290" label={t("home.statStyles")} />
+          <Stat number="−60%" label={t("home.statAvgOff")} />
         </div>
       </section>
 
@@ -110,14 +127,14 @@ export default async function Home() {
                 <span /><span /><span />
               </div>
               <h2 className="font-display text-4xl sm:text-5xl lg:text-6xl">
-                Shop by category
+                {t("home.shopByCategory")}
               </h2>
             </div>
             <Link
               href="/shop"
               className="hidden text-sm font-bold uppercase tracking-wider text-ink underline-offset-4 hover:underline sm:block"
             >
-              View all →
+              {t("home.viewAll")} →
             </Link>
           </header>
 
@@ -125,22 +142,22 @@ export default async function Home() {
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
             <CategoryTile
               href="/shop?gender=MEN"
-              title="Men"
+              title={t("nav.men")}
               imageUrl={heroMen?.url}
             />
             <CategoryTile
               href="/shop?gender=WOMEN"
-              title="Women"
+              title={t("nav.women")}
               imageUrl={heroWomen?.url}
             />
             <CategoryTile
               href="/shop?gender=KIDS"
-              title="Kids"
+              title={t("nav.kids")}
               imageUrl={heroKids?.url}
             />
             <CategoryTile
               href="/shop?division=FOOTWEAR"
-              title="Footwear"
+              title={t("nav.footwear")}
               imageUrl={heroFootwear?.url}
             />
           </div>
@@ -156,14 +173,14 @@ export default async function Home() {
                 <span /><span /><span />
               </div>
               <h2 className="font-display text-4xl sm:text-5xl lg:text-6xl">
-                Just in
+                {t("home.justIn")}
               </h2>
             </div>
             <Link
               href="/shop"
               className="hidden text-sm font-bold uppercase tracking-wider text-ink underline-offset-4 hover:underline sm:block"
             >
-              View all →
+              {t("home.viewAll")} →
             </Link>
           </header>
 
@@ -192,20 +209,18 @@ export default async function Home() {
         </div>
         <div className="absolute inset-y-0 left-0 flex items-center px-6">
           <div className="mx-auto max-w-[1400px]">
-            <p className="label-mono text-paper/70">N. 03 · From the lot</p>
+            <p className="label-mono text-paper/70">{t("home.editorialEyebrow")}</p>
             <h2 className="mt-4 max-w-2xl font-display text-[clamp(2.5rem,7vw,6.5rem)] text-paper">
-              How the<br />
-              discount works
+              {t("home.howDiscountWorks")}
             </h2>
             <p className="mt-6 max-w-md text-base leading-relaxed text-paper/85">
-              We buy whole pallets of end-of-line stock straight from regional wholesalers.
-              No distributor markup. No regional reseller markup. No retail margin. What you pay is the warehouse price plus our thin operating cut.
+              {t("home.discountBody")}
             </p>
             <Link
               href="/about"
               className="btn-outline mt-8 !text-paper !border-paper hover:!bg-paper hover:!text-ink"
             >
-              The full method
+              {t("home.fullMethod")}
               <span aria-hidden>→</span>
             </Link>
           </div>
@@ -221,17 +236,17 @@ export default async function Home() {
                 <span /><span /><span />
               </div>
               <h2 className="font-display text-4xl sm:text-5xl lg:text-6xl">
-                Last chance
+                {t("home.lastChance")}
               </h2>
               <p className="mt-3 max-w-md text-sm text-ink-soft">
-                The deepest discounts in the lot. Limited stock per size.
+                {t("home.lastChanceSub")}
               </p>
             </div>
             <Link
               href="/shop?sort=discount"
               className="hidden text-sm font-bold uppercase tracking-wider text-ink underline-offset-4 hover:underline sm:block"
             >
-              All sale →
+              {t("home.allSale")} →
             </Link>
           </header>
 
@@ -243,7 +258,7 @@ export default async function Home() {
 
           <div className="mt-14 text-center">
             <Link href="/shop" className="btn-solid">
-              See all {all.length} styles
+              {t("home.seeAllStyles").replace("{count}", String(all.length))}
               <span aria-hidden>→</span>
             </Link>
           </div>
