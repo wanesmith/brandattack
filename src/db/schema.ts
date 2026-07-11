@@ -173,6 +173,10 @@ export const users = pgTable(
     passwordHash: text("password_hash").notNull(),
     name: text("name"),
     emailVerified: boolean("email_verified").notNull().default(false),
+    // Saved delivery address (JSON: normalized ShippingAddress in lib/address).
+    // Populated by importing from the customer's latest Stripe order, or edited
+    // manually on the account page.
+    shippingAddress: text("shipping_address"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
