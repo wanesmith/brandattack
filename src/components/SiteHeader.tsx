@@ -1,21 +1,24 @@
 import Link from "next/link";
 import { CartButton } from "@/components/CartButton";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 import { getBranding } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/customer-auth";
+import { getT } from "@/lib/i18n/server";
 
 const PRIMARY_NAV = [
-  { label: "Men", href: "/shop?gender=MEN" },
-  { label: "Women", href: "/shop?gender=WOMEN" },
-  { label: "Kids", href: "/shop?gender=KIDS" },
-  { label: "Footwear", href: "/shop?division=FOOTWEAR" },
-  { label: "Apparel", href: "/shop?division=APPAREL" },
-  { label: "Brands", href: "/shop" },
-  { label: "Sale", href: "/shop" },
+  { key: "nav.men", href: "/shop?gender=MEN" },
+  { key: "nav.women", href: "/shop?gender=WOMEN" },
+  { key: "nav.kids", href: "/shop?gender=KIDS" },
+  { key: "nav.footwear", href: "/shop?division=FOOTWEAR" },
+  { key: "nav.apparel", href: "/shop?division=APPAREL" },
+  { key: "nav.brands", href: "/shop" },
+  { key: "nav.sale", href: "/shop" },
 ];
 
 export async function SiteHeader() {
   const branding = await getBranding();
   const user = await getCurrentUser();
+  const t = await getT();
   const announcements =
     branding.announcements.length > 0 ? branding.announcements : [branding.siteName];
   return (
@@ -49,11 +52,11 @@ export async function SiteHeader() {
         <nav className="hidden flex-1 items-center justify-center gap-7 lg:flex">
           {PRIMARY_NAV.map((item) => (
             <Link
-              key={item.label}
+              key={item.key}
               href={item.href}
               className="group relative py-2 text-[13px] font-bold uppercase tracking-wider text-ink transition-colors hover:text-accent"
             >
-              {item.label}
+              {t(item.key)}
               <span className="absolute -bottom-0.5 left-0 h-0.5 w-0 bg-ink transition-all duration-300 group-hover:w-full" />
             </Link>
           ))}
@@ -61,9 +64,10 @@ export async function SiteHeader() {
 
         {/* Right tools */}
         <div className="ml-auto flex items-center gap-2 lg:ml-0">
+          <LanguageSwitcher />
           <button
             type="button"
-            aria-label="Search"
+            aria-label={t("header.search")}
             className="hidden h-9 w-9 items-center justify-center text-ink transition-colors hover:text-accent sm:flex"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -73,8 +77,8 @@ export async function SiteHeader() {
           </button>
           <Link
             href={user ? "/account" : "/login"}
-            aria-label={user ? "Your account" : "Sign in"}
-            title={user ? "Your account" : "Sign in"}
+            aria-label={user ? t("header.account") : t("header.signIn")}
+            title={user ? t("header.account") : t("header.signIn")}
             className="hidden h-9 w-9 items-center justify-center text-ink transition-colors hover:text-accent sm:flex"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -90,11 +94,11 @@ export async function SiteHeader() {
       <nav className="flex items-center gap-5 overflow-x-auto border-t border-rule px-6 py-3 lg:hidden">
         {PRIMARY_NAV.map((item) => (
           <Link
-            key={item.label}
+            key={item.key}
             href={item.href}
             className="shrink-0 text-xs font-bold uppercase tracking-wider text-ink hover:text-accent"
           >
-            {item.label}
+            {t(item.key)}
           </Link>
         ))}
       </nav>

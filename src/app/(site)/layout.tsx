@@ -5,6 +5,8 @@ import { CartDrawer } from "@/components/CartDrawer";
 import { CartSync } from "@/components/CartSync";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { LocaleProvider } from "@/components/i18n/LocaleProvider";
+import { getLocale, getMessages } from "@/lib/i18n/server";
 import { getMaintenance } from "@/lib/settings";
 import { ADMIN_COOKIE_NAME, isValidSessionCookie } from "@/lib/admin-auth";
 
@@ -13,6 +15,8 @@ import { ADMIN_COOKIE_NAME, isValidSessionCookie } from "@/lib/admin-auth";
 // the site header, footer, or cart drawer.
 export default async function SiteLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const maintenance = await getMaintenance();
+  const locale = await getLocale();
+  const messages = await getMessages(locale);
 
   if (maintenance.enabled) {
     const store = await cookies();
@@ -23,25 +27,25 @@ export default async function SiteLayout({ children }: Readonly<{ children: Reac
     }
     // Signed-in admins see the live site with a preview banner.
     return (
-      <>
+      <LocaleProvider locale={locale} messages={messages}>
         <AdminPreviewBanner />
         <SiteHeader />
         <main className="relative z-[2] flex-1">{children}</main>
         <SiteFooter />
         <CartDrawer />
         <CartSync />
-      </>
+      </LocaleProvider>
     );
   }
 
   return (
-    <>
+    <LocaleProvider locale={locale} messages={messages}>
       <SiteHeader />
       <main className="relative z-[2] flex-1">{children}</main>
       <SiteFooter />
       <CartDrawer />
       <CartSync />
-    </>
+    </LocaleProvider>
   );
 }
 

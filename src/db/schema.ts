@@ -241,6 +241,21 @@ export const carts = pgTable(
   (t) => [index("idx_carts_updated").on(t.updatedAt)]
 );
 
+// Admin-editable UI translation overrides. Built-in defaults live in
+// lib/i18n/dictionaries; a row here overrides one (locale, key) at runtime.
+export const translations = pgTable(
+  "translations",
+  {
+    locale: text("locale").notNull(),
+    key: text("key").notNull(),
+    value: text("value").notNull().default(""),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [primaryKey({ columns: [t.locale, t.key] })]
+);
+
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
 export type Variant = typeof variants.$inferSelect;
