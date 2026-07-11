@@ -136,12 +136,20 @@ export default async function ProductsAdmin({
     <div>
       <div className="flex items-baseline justify-between">
         <h1 className="text-3xl font-bold">Products</h1>
-        <Link
-          href="/admin/import"
-          className="rounded-sm bg-[var(--accent)] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-black hover:opacity-90"
-        >
-          Import new lot
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/products/new"
+            className="rounded-sm border border-[var(--accent)] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-[var(--accent)] hover:bg-[var(--accent)] hover:text-black"
+          >
+            New product
+          </Link>
+          <Link
+            href="/admin/import"
+            className="rounded-sm bg-[var(--accent)] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-black hover:opacity-90"
+          >
+            Import new lot
+          </Link>
+        </div>
       </div>
       <p className="mt-1 text-sm text-[var(--muted)]">
         {total.toLocaleString()} total · page {page} of {totalPages}
@@ -225,7 +233,11 @@ export default async function ProductsAdmin({
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-2 font-medium">{r.title}</td>
+                  <td className="px-4 py-2 font-medium">
+                    <Link href={`/admin/products/${r.id}`} className="hover:text-[var(--accent)] hover:underline">
+                      {r.title}
+                    </Link>
+                  </td>
                   <td className="px-4 py-2 font-mono text-xs">{r.articleNo}</td>
                   <td className="px-4 py-2 text-[var(--muted)]">{r.division}</td>
                   <td className="px-4 py-2">{formatUsd(Number(r.priceUsd))}</td>
