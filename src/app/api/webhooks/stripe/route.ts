@@ -4,6 +4,7 @@ import type Stripe from "stripe";
 import { db, schema } from "@/db";
 import { requireStripe } from "@/lib/stripe";
 import { getStripeWebhookSecret } from "@/lib/settings";
+import { parseStripeAddress } from "@/lib/address";
 
 // Stripe sends raw body + signature header; Next.js gives us text via req.text().
 // Don't parse JSON before verification.
@@ -157,6 +158,18 @@ async function handleCompleted(session: Stripe.Checkout.Session) {
         .where(eq(schema.variants.sku, c.sku));
     }
     await tx.delete(schema.reservations).where(eq(schema.reservations.stripeSessionId, full.id));
+
+    // Keep the customer's saved delivery address current from their latest
+    // order — no manual "import" needed. Matches on the (normalized) email.
+    if (address) {
+      const parsed = parseStripeAddress(address);
+      if (parsed) {
+        await tx
+          .update(schema.users)
+          .set({ shippingAddress: JSON.stringify(parsed), updatedAt: new Date() })
+          .where(eq(schema.users.email, email.toLowerCase()));
+      }
+    }
   });
 
   console.log(`[stripe webhook] order created for session ${full.id}`);
