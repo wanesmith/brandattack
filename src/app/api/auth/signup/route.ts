@@ -8,12 +8,20 @@ import {
   normalizeEmail,
 } from "@/lib/customer-auth";
 import { sendEmail, verificationEmail } from "@/lib/email";
-import { getBranding } from "@/lib/settings";
+import { getBranding, getStoreControls } from "@/lib/settings";
 import { siteOrigin } from "@/lib/auth-shared";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  const { signupsEnabled } = await getStoreControls();
+  if (!signupsEnabled) {
+    return NextResponse.json(
+      { error: "New account registration is currently closed.", code: "signups_disabled" },
+      { status: 403 }
+    );
+  }
+
   let body: { email?: string; password?: string; name?: string };
   try {
     body = await req.json();

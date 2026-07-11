@@ -3,6 +3,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { requireStripe } from "@/lib/stripe";
 import { getCurrentUser } from "@/lib/customer-auth";
+import { getStoreControls } from "@/lib/settings";
 
 type Body = {
   items: { sku: string; qty: number }[];
@@ -22,6 +23,15 @@ export async function POST(req: Request) {
 }
 
 async function handle(req: Request) {
+  // Store-level switch: browse-only mode disables ordering.
+  const { checkoutEnabled } = await getStoreControls();
+  if (!checkoutEnabled) {
+    return NextResponse.json(
+      { error: "Ordering is temporarily paused. Please check back soon.", code: "checkout_disabled" },
+      { status: 403 }
+    );
+  }
+
   // Checkout requires a signed-in, email-verified customer.
   const user = await getCurrentUser();
   if (!user) {

@@ -57,6 +57,30 @@ export const SETTING_DEFS: SettingDef[] = [
     help: "Shown on the maintenance page.",
   },
   {
+    key: "signups_enabled",
+    group: "Site",
+    label: "Customer signups",
+    type: "select",
+    default: "true",
+    options: [
+      { value: "true", label: "On — customers can create accounts" },
+      { value: "false", label: "Off — new signups are closed" },
+    ],
+    help: "When off, new account registration is disabled. The storefront stays live and existing customers can still sign in.",
+  },
+  {
+    key: "checkout_enabled",
+    group: "Site",
+    label: "Checkout / ordering",
+    type: "select",
+    default: "true",
+    options: [
+      { value: "true", label: "On — customers can place orders" },
+      { value: "false", label: "Off — browse-only, no new orders" },
+    ],
+    help: "When off, checkout is disabled (browse-only). The storefront stays live; customers just can't complete a purchase.",
+  },
+  {
     key: "site_name",
     group: "Branding",
     label: "Site name",
@@ -290,6 +314,18 @@ export async function getMaintenance(): Promise<{ enabled: boolean; message: str
   return {
     enabled: s.maintenance_mode === "true",
     message: s.maintenance_message || DEFAULTS.maintenance_message,
+  };
+}
+
+// Lighter switches than maintenance mode — the storefront stays browsable.
+export async function getStoreControls(): Promise<{
+  signupsEnabled: boolean;
+  checkoutEnabled: boolean;
+}> {
+  const s = await getAllSettings();
+  return {
+    signupsEnabled: s.signups_enabled !== "false",
+    checkoutEnabled: s.checkout_enabled !== "false",
   };
 }
 
