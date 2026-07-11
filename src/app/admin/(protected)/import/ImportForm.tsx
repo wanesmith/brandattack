@@ -70,6 +70,13 @@ export function ImportForm() {
         required
       />
 
+      <a
+        href="/api/admin/lot-template"
+        className="-mt-2 inline-flex items-center gap-1 font-mono text-xs uppercase tracking-wider text-[var(--accent)] hover:underline"
+      >
+        ↓ Download sample template (.xlsx)
+      </a>
+
       <FileField
         label="Image zip (.zip) — optional"
         hint="Skip to import metadata only. Filenames like JP9933-1.jpg."
