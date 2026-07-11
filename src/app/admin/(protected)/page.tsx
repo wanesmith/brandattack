@@ -34,13 +34,13 @@ export default async function AdminDashboard() {
     db
       .select({ n: count() })
       .from(schema.orders)
-      .where(gte(schema.orders.createdAt, startOfTodayUtc())),
+      .where(gte(schema.orders.createdAt, startOfStoreDay())),
     db
       .select({
         value: sql<number>`COALESCE(SUM(${schema.orders.totalUsd}), 0)::float`,
       })
       .from(schema.orders)
-      .where(gte(schema.orders.createdAt, startOfTodayUtc())),
+      .where(gte(schema.orders.createdAt, startOfStoreDay())),
     db
       .select({
         id: schema.orders.id,
@@ -70,8 +70,12 @@ export default async function AdminDashboard() {
           value={`$${Math.round(Number(retailValueRow[0].value)).toLocaleString()}`}
           sub="sum of price × stock"
         />
-        <StatCard label="Orders today" value={String(ordersTodayCount[0].n)} />
-        <StatCard label="Revenue today" value={`$${Math.round(Number(revenueTodayRow[0].value)).toLocaleString()}`} />
+        <StatCard label="Orders today" value={String(ordersTodayCount[0].n)} sub="Singapore time" />
+        <StatCard
+          label="Revenue today"
+          value={`$${Math.round(Number(revenueTodayRow[0].value)).toLocaleString()}`}
+          sub="Singapore time"
+        />
         <StatCard label="Orders all time" value={String(ordersTotal[0].n)} />
       </section>
 
@@ -101,7 +105,7 @@ export default async function AdminDashboard() {
                 {recentOrders.map((o) => (
                   <tr key={o.id}>
                     <td className="px-4 py-3 text-[var(--muted)]">
-                      {o.createdAt.toLocaleString()}
+                      {o.createdAt.toLocaleString("en-GB", { timeZone: "Asia/Singapore" })} SGT
                     </td>
                     <td className="px-4 py-3 font-mono text-xs">{o.email}</td>
                     <td className="px-4 py-3">${Number(o.totalUsd).toFixed(2)}</td>
@@ -140,10 +144,18 @@ export default async function AdminDashboard() {
   );
 }
 
-function startOfTodayUtc(): Date {
-  const d = new Date();
-  d.setUTCHours(0, 0, 0, 0);
-  return d;
+// Start of "today" in the store's business timezone (Singapore, UTC+8, no DST),
+// returned as the equivalent UTC instant for the query. Using UTC midnight
+// would miscount around the day boundary for admins in other timezones.
+function startOfStoreDay(): Date {
+  const OFFSET_MIN = 8 * 60; // Singapore is UTC+8 year-round
+  const nowSgt = new Date(Date.now() + OFFSET_MIN * 60_000);
+  const midnightSgtAsUtc = Date.UTC(
+    nowSgt.getUTCFullYear(),
+    nowSgt.getUTCMonth(),
+    nowSgt.getUTCDate()
+  );
+  return new Date(midnightSgtAsUtc - OFFSET_MIN * 60_000);
 }
 
 function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
