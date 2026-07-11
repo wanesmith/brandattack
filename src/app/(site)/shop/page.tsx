@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ProductCard } from "@/components/ProductCard";
 import { filterProducts, type Filters, type Product } from "@/lib/products";
 import { getActiveFacets } from "@/lib/facets";
+import { getT } from "@/lib/i18n/server";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -11,12 +12,34 @@ export const metadata = {
 };
 
 const SORT_OPTIONS = [
-  { id: "default", label: "Featured" },
-  { id: "discount", label: "Biggest discount" },
-  { id: "price-low", label: "Price: low to high" },
-  { id: "price-high", label: "Price: high to low" },
-  { id: "alpha", label: "A → Z" },
+  { id: "default", key: "shop.sortFeatured" },
+  { id: "discount", key: "shop.sortDiscount" },
+  { id: "price-low", key: "shop.sortPriceLow" },
+  { id: "price-high", key: "shop.sortPriceHigh" },
+  { id: "alpha", key: "shop.sortAlpha" },
 ];
+
+// Facet group headings mapped to i18n keys by facet id; unmapped ids fall back
+// to the facet's own label.
+const FACET_LABEL_KEY: Record<string, string> = {
+  division: "facets.division",
+  gender: "facets.gender",
+  sportsCode: "facets.sport",
+  productGroup: "facets.category",
+  season: "facets.season",
+  brand: "facets.brand",
+};
+
+// Known closed-set facet values mapped to existing nav keys; everything else
+// (brands, seasons, sport codes, …) falls back to the value's own label.
+const FACET_VALUE_KEY: Record<string, string> = {
+  FOOTWEAR: "nav.footwear",
+  APPAREL: "nav.apparel",
+  HARDWARE: "nav.hardware",
+  MEN: "nav.men",
+  WOMEN: "nav.women",
+  KIDS: "nav.kids",
+};
 
 const ALLOWED: (keyof Filters)[] = [
   "division",
@@ -55,18 +78,20 @@ function sortProducts(items: Product[], sort: string): Product[] {
   }
 }
 
-function categoryHeading(filters: Filters): { title: string; subtitle: string } {
-  if (filters.gender === "MEN") return { title: "Men", subtitle: "Footwear, apparel & accessories for men" };
-  if (filters.gender === "WOMEN") return { title: "Women", subtitle: "Footwear, apparel & accessories for women" };
-  if (filters.gender === "KIDS") return { title: "Kids", subtitle: "Junior sizes across the lot" };
-  if (filters.division === "FOOTWEAR") return { title: "Footwear", subtitle: "Sneakers, runners and trainers" };
-  if (filters.division === "APPAREL") return { title: "Apparel", subtitle: "Tops, pants, layers and sets" };
-  if (filters.division === "HARDWARE") return { title: "Hardware", subtitle: "Bags, balls and equipment" };
-  return { title: "All products", subtitle: "The full catalogue of branded closeouts." };
+// Returns i18n keys; the component resolves them with t().
+function categoryHeading(filters: Filters): { titleKey: string; subtitleKey: string } {
+  if (filters.gender === "MEN") return { titleKey: "nav.men", subtitleKey: "shop.subMen" };
+  if (filters.gender === "WOMEN") return { titleKey: "nav.women", subtitleKey: "shop.subWomen" };
+  if (filters.gender === "KIDS") return { titleKey: "nav.kids", subtitleKey: "shop.subKids" };
+  if (filters.division === "FOOTWEAR") return { titleKey: "nav.footwear", subtitleKey: "shop.subFootwear" };
+  if (filters.division === "APPAREL") return { titleKey: "nav.apparel", subtitleKey: "shop.subApparel" };
+  if (filters.division === "HARDWARE") return { titleKey: "nav.hardware", subtitleKey: "shop.subHardware" };
+  return { titleKey: "shop.allProducts", subtitleKey: "shop.allProductsSub" };
 }
 
 export default async function ShopPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
+  const t = await getT();
   const filters = pickFilters(sp);
   const sort = typeof sp.sort === "string" ? sp.sort : "default";
 
@@ -86,11 +111,11 @@ export default async function ShopPage({ searchParams }: { searchParams: SearchP
         <div className="mx-auto max-w-[1400px] px-6 pt-8 lg:pt-12">
           <nav className="label-mono-sm flex items-center gap-2 text-ink-faded">
             <Link href="/" className="hover:text-accent">
-              Home
+              {t("shop.home")}
             </Link>
             <span>/</span>
             <Link href="/shop" className="hover:text-accent">
-              Shop
+              {t("shop.shopCrumb")}
             </Link>
             {filters.division && (
               <>
@@ -111,9 +136,9 @@ export default async function ShopPage({ searchParams }: { searchParams: SearchP
               <span /><span /><span />
             </div>
             <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl">
-              {heading.title}
+              {t(heading.titleKey)}
             </h1>
-            <p className="mt-3 max-w-xl text-sm text-ink-soft">{heading.subtitle}</p>
+            <p className="mt-3 max-w-xl text-sm text-ink-soft">{t(heading.subtitleKey)}</p>
           </div>
         </div>
       </div>
@@ -122,12 +147,12 @@ export default async function ShopPage({ searchParams }: { searchParams: SearchP
       <div className="sticky top-0 z-10 border-b border-rule bg-paper/95 backdrop-blur">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-6 px-6 py-3">
           <p className="label-mono-sm text-ink-faded">
-            {products.length} {products.length === 1 ? "item" : "items"}
+            {products.length} {products.length === 1 ? t("shop.item") : t("shop.items")}
             {activeCount > 0 && (
               <>
                 {" · "}
                 <Link href="/shop" className="text-accent hover:underline">
-                  clear filters
+                  {t("shop.clearFilters")}
                 </Link>
               </>
             )}
@@ -137,7 +162,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SearchP
               <input key={k} type="hidden" name={k} value={v} />
             ))}
             <label htmlFor="sort" className="label-mono-sm text-ink-faded">
-              Sort
+              {t("shop.sort")}
             </label>
             <select
               name="sort"
@@ -147,12 +172,12 @@ export default async function ShopPage({ searchParams }: { searchParams: SearchP
             >
               {SORT_OPTIONS.map((o) => (
                 <option key={o.id} value={o.id}>
-                  {o.label}
+                  {t(o.key)}
                 </option>
               ))}
             </select>
             <button type="submit" className="text-xs font-bold uppercase tracking-wider text-ink underline-offset-4 hover:underline">
-              Apply
+              {t("shop.apply")}
             </button>
           </form>
         </div>
@@ -163,10 +188,10 @@ export default async function ShopPage({ searchParams }: { searchParams: SearchP
           {/* Filters */}
           <aside className="lg:sticky lg:top-20 lg:max-h-[calc(100vh-5rem)] lg:self-start lg:overflow-y-auto lg:pb-10">
             {facets.map((facet) => (
-              <FacetGroup key={facet.id} facet={facet} current={filters} />
+              <FacetGroup key={facet.id} facet={facet} current={filters} t={t} />
             ))}
             {facets.length === 0 && (
-              <p className="label-mono-sm text-ink-faded">No filters configured.</p>
+              <p className="label-mono-sm text-ink-faded">{t("shop.noFilters")}</p>
             )}
           </aside>
 
@@ -175,13 +200,13 @@ export default async function ShopPage({ searchParams }: { searchParams: SearchP
             {products.length === 0 ? (
               <div className="border border-rule bg-paper-warm p-16 text-center">
                 <div className="font-display text-3xl text-ink">
-                  Nothing matches.
+                  {t("shop.nothingMatches")}
                 </div>
                 <Link
                   href="/shop"
                   className="btn-outline mt-8"
                 >
-                  Clear filters →
+                  {t("shop.clearFiltersCta")} →
                 </Link>
               </div>
             ) : (
@@ -201,15 +226,19 @@ export default async function ShopPage({ searchParams }: { searchParams: SearchP
 function FacetGroup({
   facet,
   current,
+  t,
 }: {
   facet: { id: string; label: string; values: { value: string; label: string }[] };
   current: Filters;
+  t: (key: string) => string;
 }) {
   if (facet.values.length === 0) return null;
   return (
     <details open className="group border-t border-rule py-4 first:border-t-0 first:pt-0">
       <summary className="flex cursor-pointer items-center justify-between list-none [&::-webkit-details-marker]:hidden">
-        <span className="text-xs font-bold uppercase tracking-wider text-ink">{facet.label}</span>
+        <span className="text-xs font-bold uppercase tracking-wider text-ink">
+          {FACET_LABEL_KEY[facet.id] ? t(FACET_LABEL_KEY[facet.id]) : facet.label}
+        </span>
         <span className="text-base text-ink-faded transition-transform group-open:rotate-45">+</span>
       </summary>
       <ul className="mt-3 space-y-1">
@@ -230,7 +259,7 @@ function FacetGroup({
                   (selected ? "font-bold text-ink underline underline-offset-4" : "text-ink-soft hover:text-ink")
                 }
               >
-                {opt.label}
+                {FACET_VALUE_KEY[opt.value] ? t(FACET_VALUE_KEY[opt.value]) : opt.label}
               </Link>
             </li>
           );
