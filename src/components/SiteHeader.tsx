@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CartButton } from "@/components/CartButton";
+import { HeaderLogout } from "@/components/HeaderLogout";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 import { getBranding } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/customer-auth";
@@ -86,6 +87,7 @@ export async function SiteHeader() {
               <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" strokeLinecap="round" />
             </svg>
           </Link>
+          {user && <HeaderLogout />}
           <CartButton />
         </div>
       </div>
