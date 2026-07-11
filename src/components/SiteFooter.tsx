@@ -129,7 +129,7 @@ export async function SiteFooter() {
         <div className="mx-auto flex max-w-[1400px] flex-col items-start justify-between gap-4 px-6 py-6 text-xs text-[var(--ink-ghost)] sm:flex-row sm:items-center">
           <div>© {new Date().getFullYear()} {branding.siteName}. {t("footer.rights")}</div>
           <div className="flex flex-wrap gap-x-5 gap-y-1">
-            <Link href="/about" className="hover:text-paper">
+            <Link href="/terms" className="hover:text-paper">
               {t("footer.terms")}
             </Link>
             <Link href="/about" className="hover:text-paper">
