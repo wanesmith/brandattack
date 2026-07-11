@@ -111,6 +111,7 @@ export const orders = pgTable(
     shippingAddress: text("shipping_address"), // JSON-serialised Stripe address
     trackingNumber: text("tracking_number"),
     notes: text("notes"),
+    fulfilledAt: timestamp("fulfilled_at", { withTimezone: true }), // set when marked fulfilled
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()

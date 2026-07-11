@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { PasswordInput } from "@/components/PasswordInput";
 
 export function LoginForm({ initialError }: { initialError: string | null }) {
   const [password, setPassword] = useState("");
@@ -43,13 +44,13 @@ export function LoginForm({ initialError }: { initialError: string | null }) {
         <span className="font-mono text-[11px] uppercase tracking-wider text-[var(--muted)]">
           Password
         </span>
-        <input
-          type="password"
+        <PasswordInput
           autoFocus
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 block w-full rounded-sm border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none"
+          containerClassName="mt-1"
+          className="block w-full rounded-sm border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none"
         />
       </label>
       {error && (

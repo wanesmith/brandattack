@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
+import { PasswordInput } from "@/components/PasswordInput";
 
 const inputClass =
   "w-full rounded-sm border border-rule bg-paper px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none";
@@ -60,14 +61,14 @@ export function SignupForm({ next }: { next: string }) {
       </label>
       <label className="block">
         <span className="label-mono-sm text-ink/60">Password</span>
-        <input
-          type="password"
+        <PasswordInput
           autoComplete="new-password"
           required
           minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className={`mt-1 ${inputClass}`}
+          containerClassName="mt-1"
+          className={inputClass}
         />
         <span className="mt-1 block text-[11px] text-ink/50">At least 8 characters.</span>
       </label>

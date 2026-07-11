@@ -57,6 +57,13 @@
       "when": 1783734570448,
       "tag": "0007_spicy_leper_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1783776712232,
+      "tag": "0008_faithful_roxanne_simpson",
+      "breakpoints": true
     }
   ]
 }
