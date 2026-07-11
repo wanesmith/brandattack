@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart-store";
 import { formatUsd } from "@/lib/format";
+import { useT } from "@/components/i18n/LocaleProvider";
 
 export function CartDrawer() {
+  const { t } = useT();
   const open = useCart((s) => s.drawerOpen);
   const close = useCart((s) => s.closeDrawer);
   const items = useCart((s) => s.items);
@@ -53,18 +55,18 @@ export function CartDrawer() {
           (open ? "translate-x-0" : "translate-x-full")
         }
         role="dialog"
-        aria-label="Shopping cart"
+        aria-label={t("cart.title")}
         aria-hidden={!open}
       >
         <header className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
           <h2 className="font-mono text-sm font-bold uppercase tracking-wider">
-            Cart ({items.reduce((n, i) => n + i.qty, 0)})
+            {t("cart.title")} ({items.reduce((n, i) => n + i.qty, 0)})
           </h2>
           <button
             type="button"
             onClick={close}
             className="rounded p-1 text-[var(--muted)] hover:text-foreground"
-            aria-label="Close cart"
+            aria-label={t("cart.close")}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 6L6 18M6 6l12 12" />
@@ -76,14 +78,14 @@ export function CartDrawer() {
           {items.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-center">
               <p className="font-mono text-xs uppercase tracking-wider text-[var(--muted)]">
-                Your cart is empty
+                {t("cart.empty")}
               </p>
               <Link
                 href="/shop"
                 onClick={close}
                 className="mt-4 rounded-sm bg-[var(--accent)] px-5 py-2 font-mono text-xs font-bold uppercase tracking-wider text-black hover:opacity-90"
               >
-                Browse the shop →
+                {t("cart.browseShop")} →
               </Link>
             </div>
           ) : (
@@ -108,7 +110,7 @@ export function CartDrawer() {
                       {it.title}
                     </Link>
                     <div className="font-mono text-[11px] uppercase tracking-wider text-[var(--muted)]">
-                      Size {it.sizeLabel} · {formatUsd(it.priceUsd)}
+                      {t("cart.size")} {it.sizeLabel} · {formatUsd(it.priceUsd)}
                     </div>
                     <div className="mt-2 flex items-center gap-2">
                       <QtyControl
@@ -121,7 +123,7 @@ export function CartDrawer() {
                         onClick={() => remove(it.sku)}
                         className="ml-auto text-[11px] text-[var(--muted)] underline-offset-2 hover:text-[var(--accent)] hover:underline"
                       >
-                        Remove
+                        {t("cart.remove")}
                       </button>
                     </div>
                   </div>
@@ -138,12 +140,12 @@ export function CartDrawer() {
           <footer className="border-t border-[var(--border)] px-5 py-4">
             <div className="mb-3 flex items-baseline justify-between">
               <span className="font-mono text-xs uppercase tracking-wider text-[var(--muted)]">
-                Subtotal
+                {t("cart.subtotal")}
               </span>
               <span className="text-lg font-bold">{formatUsd(subtotal)}</span>
             </div>
             <p className="mb-3 text-[11px] text-[var(--muted)]">
-              Shipping &amp; taxes calculated at checkout.
+              {t("cart.shippingTaxesNote")}
             </p>
             <CheckoutButton />
           </footer>
@@ -162,6 +164,7 @@ function QtyControl({
   max: number;
   onChange: (q: number) => void;
 }) {
+  const { t } = useT();
   return (
     <div className="inline-flex items-center rounded-sm border border-[var(--border)]">
       <button
@@ -169,7 +172,7 @@ function QtyControl({
         onClick={() => onChange(qty - 1)}
         className="px-2 py-1 text-sm hover:text-[var(--accent)] disabled:opacity-30"
         disabled={qty <= 1}
-        aria-label="Decrease quantity"
+        aria-label={t("cart.decreaseQty")}
       >
         −
       </button>
@@ -179,7 +182,7 @@ function QtyControl({
         onClick={() => onChange(qty + 1)}
         className="px-2 py-1 text-sm hover:text-[var(--accent)] disabled:opacity-30"
         disabled={qty >= max}
-        aria-label="Increase quantity"
+        aria-label={t("cart.increaseQty")}
       >
         +
       </button>
@@ -198,6 +201,7 @@ async function safeJson(
 }
 
 function CheckoutButton() {
+  const { t } = useT();
   const items = useCart((s) => s.items);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -225,7 +229,7 @@ function CheckoutButton() {
         return;
       }
       if (!res.ok || !data?.url) {
-        throw new Error(data?.error ?? `Could not start checkout (HTTP ${res.status})`);
+        throw new Error(data?.error ?? `${t("cart.checkoutError")} (HTTP ${res.status})`);
       }
       window.location.href = data.url;
     } catch (e) {
@@ -242,7 +246,7 @@ function CheckoutButton() {
         disabled={loading || items.length === 0}
         className="w-full rounded-sm bg-[var(--accent)] px-6 py-3 font-mono text-sm font-bold uppercase tracking-wider text-black transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:bg-[var(--surface)] disabled:text-[var(--muted)]"
       >
-        {loading ? "Starting checkout …" : "Checkout"}
+        {loading ? t("cart.startingCheckout") : t("cart.checkout")}
       </button>
       {error && <p className="mt-2 text-center text-xs text-red-400">{error}</p>}
     </>

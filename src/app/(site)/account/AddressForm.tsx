@@ -2,15 +2,16 @@
 import { useState } from "react";
 import { EMPTY_ADDRESS, type ShippingAddress } from "@/lib/address";
 import { SHIP_TO_COUNTRIES } from "@/lib/countries";
+import { useT } from "@/components/i18n/LocaleProvider";
 
-const FIELDS: { key: keyof ShippingAddress; label: string; required?: boolean; half?: boolean }[] = [
-  { key: "name", label: "Full name" },
-  { key: "phone", label: "Phone" },
-  { key: "line1", label: "Address line 1", required: true },
-  { key: "line2", label: "Address line 2" },
-  { key: "city", label: "City", required: true, half: true },
-  { key: "state", label: "State / region", half: true },
-  { key: "postalCode", label: "Postal code", half: true },
+const FIELDS: { key: keyof ShippingAddress; labelKey: string; required?: boolean; half?: boolean }[] = [
+  { key: "name", labelKey: "account.fieldName" },
+  { key: "phone", labelKey: "account.fieldPhone" },
+  { key: "line1", labelKey: "account.fieldLine1", required: true },
+  { key: "line2", labelKey: "account.fieldLine2" },
+  { key: "city", labelKey: "account.fieldCity", required: true, half: true },
+  { key: "state", labelKey: "account.fieldState", half: true },
+  { key: "postalCode", labelKey: "account.fieldPostal", half: true },
 ];
 
 export function AddressForm({
@@ -20,6 +21,7 @@ export function AddressForm({
   initial: ShippingAddress | null;
   canImport: boolean;
 }) {
+  const { t } = useT();
   const [addr, setAddr] = useState<ShippingAddress>(initial ?? EMPTY_ADDRESS);
   const [status, setStatus] = useState<"idle" | "saving" | "importing" | "saved">("idle");
   const [msg, setMsg] = useState<string | null>(null);
@@ -39,7 +41,7 @@ export function AddressForm({
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
       setAddr({ ...EMPTY_ADDRESS, ...data.address });
-      setMsg("Imported from your last order — review and save.");
+      setMsg(t("account.importedMsg"));
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -60,7 +62,7 @@ export function AddressForm({
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
       setStatus("saved");
-      setMsg("Delivery address saved.");
+      setMsg(t("account.savedMsg"));
     } catch (e) {
       setStatus("idle");
       setErr(e instanceof Error ? e.message : String(e));
@@ -76,7 +78,7 @@ export function AddressForm({
         {FIELDS.map((f) => (
           <label key={f.key} className={f.half ? "" : "sm:col-span-2"}>
             <span className="text-xs text-ink/60">
-              {f.label}
+              {t(f.labelKey)}
               {f.required && <span className="text-accent"> *</span>}
             </span>
             <input
@@ -90,14 +92,14 @@ export function AddressForm({
         ))}
         <label>
           <span className="text-xs text-ink/60">
-            Country<span className="text-accent"> *</span>
+            {t("account.fieldCountry")}<span className="text-accent"> *</span>
           </span>
           <select
             value={addr.country}
             onChange={(e) => set("country", e.target.value)}
             className={inputCls}
           >
-            <option value="">Select…</option>
+            <option value="">{t("account.selectPlaceholder")}</option>
             {SHIP_TO_COUNTRIES.map((c) => (
               <option key={c.code} value={c.code}>
                 {c.name}
@@ -114,7 +116,7 @@ export function AddressForm({
           disabled={status === "saving"}
           className="rounded-sm bg-accent px-5 py-2 font-mono text-xs font-bold uppercase tracking-wider text-black hover:opacity-90 disabled:opacity-60"
         >
-          {status === "saving" ? "Saving…" : "Save address"}
+          {status === "saving" ? t("account.saving") : t("account.saveAddress")}
         </button>
         {canImport && (
           <button
@@ -123,7 +125,7 @@ export function AddressForm({
             disabled={status === "importing"}
             className="rounded-sm border border-rule px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-ink hover:border-accent hover:text-accent disabled:opacity-60"
           >
-            {status === "importing" ? "Importing…" : "Import from last order"}
+            {status === "importing" ? t("account.importing") : t("account.importFromLast")}
           </button>
         )}
         {msg && <span className="text-xs text-emerald-600">{msg}</span>}

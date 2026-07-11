@@ -3,6 +3,7 @@ import { eq, desc, and, isNotNull } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { getCurrentUser } from "@/lib/customer-auth";
 import { parseSavedAddress } from "@/lib/address";
+import { getT } from "@/lib/i18n/server";
 import { ResendVerification, LogoutButton } from "./AccountActions";
 import { AddressForm } from "./AddressForm";
 
@@ -12,6 +13,8 @@ export const metadata = { title: "Your account — Brand Stoxx" };
 export default async function AccountPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/account");
+
+  const t = await getT();
 
   const orders = await db
     .select({
@@ -46,15 +49,15 @@ export default async function AccountPage() {
   return (
     <div className="mx-auto max-w-2xl px-6 py-16 lg:py-24">
       <div className="flex items-baseline justify-between">
-        <h1 className="font-display text-4xl">Your account</h1>
+        <h1 className="font-display text-4xl">{t("header.account")}</h1>
         <LogoutButton />
       </div>
 
       {!user.emailVerified && (
         <div className="mt-6 rounded-sm border border-accent/40 bg-accent/10 px-4 py-4">
-          <p className="text-sm font-medium text-ink">Verify your email to check out.</p>
+          <p className="text-sm font-medium text-ink">{t("account.verifyPrompt")}</p>
           <p className="mt-1 text-sm text-ink/60">
-            We sent a link to <strong>{user.email}</strong>. Didn&apos;t get it?
+            {t("account.sentLinkPre")}<strong>{user.email}</strong>{t("account.sentLinkPost")}
           </p>
           <ResendVerification />
         </div>
@@ -62,23 +65,23 @@ export default async function AccountPage() {
 
       <dl className="mt-8 divide-y divide-rule border-y border-rule text-sm">
         <div className="flex justify-between py-3">
-          <dt className="text-ink/60">Name</dt>
+          <dt className="text-ink/60">{t("account.name")}</dt>
           <dd>{user.name || "—"}</dd>
         </div>
         <div className="flex justify-between py-3">
-          <dt className="text-ink/60">Email</dt>
+          <dt className="text-ink/60">{t("account.email")}</dt>
           <dd>{user.email}</dd>
         </div>
         <div className="flex justify-between py-3">
-          <dt className="text-ink/60">Status</dt>
+          <dt className="text-ink/60">{t("account.status")}</dt>
           <dd>
             {user.emailVerified ? (
               <span className="font-mono text-xs uppercase tracking-wider text-emerald-600">
-                Verified
+                {t("account.verified")}
               </span>
             ) : (
               <span className="font-mono text-xs uppercase tracking-wider text-amber-600">
-                Unverified
+                {t("account.unverified")}
               </span>
             )}
           </dd>
@@ -86,27 +89,27 @@ export default async function AccountPage() {
       </dl>
 
       <div className="mt-12 flex items-baseline justify-between">
-        <h2 className="font-display text-2xl">Delivery address</h2>
+        <h2 className="font-display text-2xl">{t("account.deliveryAddress")}</h2>
         {savedAddress && (
-          <span className="font-mono text-xs uppercase tracking-wider text-ink/50">On file</span>
+          <span className="font-mono text-xs uppercase tracking-wider text-ink/50">{t("account.onFile")}</span>
         )}
       </div>
       <p className="mt-1 text-sm text-ink/60">
-        Where your orders ship. Import it from your last order or enter it manually.
+        {t("account.deliveryAddressNote")}
       </p>
       <AddressForm initial={savedAddress} canImport={canImport} />
 
-      <h2 className="mt-12 font-display text-2xl">Order history</h2>
+      <h2 className="mt-12 font-display text-2xl">{t("account.orderHistory")}</h2>
       {orders.length === 0 ? (
-        <p className="mt-3 text-sm text-ink/60">No orders yet.</p>
+        <p className="mt-3 text-sm text-ink/60">{t("account.noOrders")}</p>
       ) : (
         <div className="mt-4 overflow-hidden rounded-sm border border-rule">
           <table className="w-full text-sm">
             <thead className="bg-ink/5 text-left label-mono-sm text-ink/60">
               <tr>
-                <th className="px-4 py-3">Date</th>
-                <th className="px-4 py-3">Total</th>
-                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">{t("account.date")}</th>
+                <th className="px-4 py-3">{t("cart.total")}</th>
+                <th className="px-4 py-3">{t("account.status")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-rule">

@@ -5,8 +5,10 @@ import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart-store";
 import { CART_ID_KEY } from "@/components/CartSync";
 import { formatUsd } from "@/lib/format";
+import { useT } from "@/components/i18n/LocaleProvider";
 
 export default function CartPage() {
+  const { t } = useT();
   const items = useCart((s) => s.items);
   const subtotal = useCart((s) => s.items.reduce((n, i) => n + i.qty * i.priceUsd, 0));
   const remove = useCart((s) => s.remove);
@@ -62,7 +64,7 @@ export default function CartPage() {
         /* server returned non-JSON */
       }
       if (!res.ok || !data?.url) {
-        throw new Error(data?.error ?? `Could not start checkout (HTTP ${res.status})`);
+        throw new Error(data?.error ?? `${t("cart.checkoutError")} (HTTP ${res.status})`);
       }
       window.location.href = data.url;
     } catch (e) {
@@ -71,18 +73,18 @@ export default function CartPage() {
     }
   }
 
-  if (!mounted) return <div className="mx-auto max-w-7xl px-4 py-10">Loading…</div>;
+  if (!mounted) return <div className="mx-auto max-w-7xl px-4 py-10">{t("cart.loading")}</div>;
 
   if (items.length === 0) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-20 text-center">
-        <h1 className="text-3xl font-bold sm:text-4xl">Your cart is empty</h1>
-        <p className="mt-2 text-[var(--muted)]">Time to attack the shop.</p>
+        <h1 className="text-3xl font-bold sm:text-4xl">{t("cart.empty")}</h1>
+        <p className="mt-2 text-[var(--muted)]">{t("cart.emptySub")}</p>
         <Link
           href="/shop"
           className="mt-6 inline-block rounded-sm bg-[var(--accent)] px-6 py-3 font-mono text-sm font-bold uppercase tracking-wider text-black hover:opacity-90"
         >
-          Browse →
+          {t("cart.browse")} →
         </Link>
       </div>
     );
@@ -90,7 +92,7 @@ export default function CartPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10">
-      <h1 className="text-3xl font-bold sm:text-4xl">Cart</h1>
+      <h1 className="text-3xl font-bold sm:text-4xl">{t("cart.title")}</h1>
 
       <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_360px]">
         <ul className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
@@ -112,7 +114,7 @@ export default function CartPage() {
                   {it.title}
                 </Link>
                 <div className="font-mono text-xs uppercase tracking-wider text-[var(--muted)]">
-                  Size {it.sizeLabel}
+                  {t("cart.size")} {it.sizeLabel}
                 </div>
                 <div className="mt-3 flex items-center gap-4">
                   <div className="inline-flex items-center rounded-sm border border-[var(--border)]">
@@ -139,37 +141,37 @@ export default function CartPage() {
                     onClick={() => remove(it.sku)}
                     className="text-xs text-[var(--muted)] underline-offset-2 hover:text-[var(--accent)] hover:underline"
                   >
-                    Remove
+                    {t("cart.remove")}
                   </button>
                 </div>
               </div>
               <div className="text-right">
                 <div className="text-base font-semibold">{formatUsd(it.priceUsd * it.qty)}</div>
-                <div className="text-xs text-[var(--muted)]">{formatUsd(it.priceUsd)} each</div>
+                <div className="text-xs text-[var(--muted)]">{formatUsd(it.priceUsd)} {t("cart.each")}</div>
               </div>
             </li>
           ))}
         </ul>
 
         <aside className="h-fit rounded-md border border-[var(--border)] bg-[var(--surface)] p-6">
-          <h2 className="mb-4 font-mono text-sm font-bold uppercase tracking-wider">Summary</h2>
+          <h2 className="mb-4 font-mono text-sm font-bold uppercase tracking-wider">{t("cart.summary")}</h2>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-[var(--muted)]">Subtotal</span>
+              <span className="text-[var(--muted)]">{t("cart.subtotal")}</span>
               <span>{formatUsd(subtotal)}</span>
             </div>
             <div className="flex justify-between text-[var(--muted)]">
-              <span>Shipping</span>
-              <span>at checkout</span>
+              <span>{t("cart.shipping")}</span>
+              <span>{t("cart.atCheckout")}</span>
             </div>
             <div className="flex justify-between text-[var(--muted)]">
-              <span>Taxes</span>
-              <span>at checkout</span>
+              <span>{t("cart.taxes")}</span>
+              <span>{t("cart.atCheckout")}</span>
             </div>
           </div>
           <hr className="my-4 border-[var(--border)]" />
           <div className="flex items-baseline justify-between">
-            <span className="font-mono text-xs uppercase tracking-wider">Total</span>
+            <span className="font-mono text-xs uppercase tracking-wider">{t("cart.total")}</span>
             <span className="text-xl font-bold">{formatUsd(subtotal)}</span>
           </div>
           <button
@@ -178,11 +180,11 @@ export default function CartPage() {
             disabled={loading}
             className="mt-6 w-full rounded-sm bg-[var(--accent)] px-6 py-3 font-mono text-sm font-bold uppercase tracking-wider text-black hover:opacity-90 disabled:opacity-60"
           >
-            {loading ? "Starting checkout …" : "Checkout"}
+            {loading ? t("cart.startingCheckout") : t("cart.checkout")}
           </button>
           {error && <p className="mt-3 text-center text-xs text-red-400">{error}</p>}
           <p className="mt-3 text-center text-[11px] text-[var(--muted)]">
-            Secured by Stripe · USD
+            {t("cart.securedBy")}
           </p>
         </aside>
       </div>
