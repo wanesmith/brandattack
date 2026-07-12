@@ -25,8 +25,15 @@ export function ProductEditForm({
 }) {
   const router = useRouter();
   const [form, setForm] = useState(product);
-  const [stocks, setStocks] = useState<Record<string, number>>(
-    Object.fromEntries(variants.map((v) => [v.sku, v.stock]))
+  // Editable size rows: existing variants carry a sku (size label read-only);
+  // new sizes have an empty sku and an editable label.
+  const [sizeRows, setSizeRows] = useState(
+    variants.map((v) => ({
+      sku: v.sku,
+      label: v.sizeLabel,
+      stock: String(v.stock),
+      reserved: v.reserved,
+    }))
   );
   const [images, setImages] = useState<string[]>(initialImages);
   const [uploading, setUploading] = useState(false);
@@ -81,7 +88,9 @@ export function ProductEditForm({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           ...form,
-          variants: variants.map((v) => ({ sku: v.sku, stock: stocks[v.sku] ?? 0 })),
+          variants: sizeRows
+            .filter((r) => r.sku || r.label.trim())
+            .map((r) => ({ sku: r.sku, size: r.label.trim(), stock: Number(r.stock) || 0 })),
           images,
         }),
       });
@@ -214,32 +223,71 @@ export function ProductEditForm({
       </section>
 
       <section className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-5">
-        <h2 className="mb-4 text-sm font-bold uppercase tracking-wider">Stock by size</h2>
-        {variants.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">No sizes for this product.</p>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-sm font-bold uppercase tracking-wider">Sizes &amp; stock</h2>
+          <button
+            type="button"
+            onClick={() =>
+              setSizeRows((rows) => [...rows, { sku: "", label: "", stock: "0", reserved: 0 }])
+            }
+            className="font-mono text-xs uppercase tracking-wider text-[var(--accent)] hover:underline"
+          >
+            + Add size
+          </button>
+        </div>
+        {sizeRows.length === 0 ? (
+          <p className="text-sm text-[var(--muted)]">No sizes yet. Add one above.</p>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {variants.map((v) => (
-              <label key={v.sku} className="block">
-                <span className={labelCls}>
-                  {v.sizeLabel}
-                  {v.reserved > 0 && (
-                    <span className="ml-1 text-[10px] text-[var(--muted)]">({v.reserved} held)</span>
-                  )}
-                </span>
+          <div className="space-y-2">
+            {sizeRows.map((r, i) => (
+              <div key={r.sku || `new-${i}`} className="flex items-center gap-2">
+                {r.sku ? (
+                  <span className="flex-1 rounded-sm border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm">
+                    {r.label}
+                    {r.reserved > 0 && (
+                      <span className="ml-1 text-[10px] text-[var(--muted)]">({r.reserved} held)</span>
+                    )}
+                  </span>
+                ) : (
+                  <input
+                    value={r.label}
+                    onChange={(e) =>
+                      setSizeRows((rows) =>
+                        rows.map((x, idx) => (idx === i ? { ...x, label: e.target.value } : x))
+                      )
+                    }
+                    placeholder="Size (e.g. M or 9)"
+                    className="flex-1 rounded-sm border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none"
+                  />
+                )}
                 <input
                   type="number"
                   min="0"
-                  value={stocks[v.sku] ?? 0}
+                  value={r.stock}
                   onChange={(e) =>
-                    setStocks((s) => ({ ...s, [v.sku]: Math.max(0, Math.floor(Number(e.target.value) || 0)) }))
+                    setSizeRows((rows) =>
+                      rows.map((x, idx) => (idx === i ? { ...x, stock: e.target.value } : x))
+                    )
                   }
-                  className={inputCls}
+                  placeholder="Stock"
+                  className="w-28 rounded-sm border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none"
                 />
-              </label>
+                <button
+                  type="button"
+                  onClick={() => setSizeRows((rows) => rows.filter((_, idx) => idx !== i))}
+                  className="px-2 text-[var(--muted)] hover:text-red-400"
+                  aria-label="Remove size"
+                >
+                  ✕
+                </button>
+              </div>
             ))}
           </div>
         )}
+        <p className="mt-3 text-xs text-[var(--muted)]">
+          New sizes get SKU &lt;article no&gt;-&lt;size&gt;. Removing a size deletes it on save
+          (unless stock is held by an in-flight checkout).
+        </p>
       </section>
 
       <div className="flex items-center gap-3">
