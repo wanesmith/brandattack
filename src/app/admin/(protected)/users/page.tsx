@@ -124,7 +124,11 @@ export default async function UsersAdmin({ searchParams }: { searchParams: Searc
             ) : (
               users.map((u) => (
                 <tr key={u.id} className="hover:bg-[var(--background)]">
-                  <td className="px-4 py-2 font-mono text-xs">{u.email}</td>
+                  <td className="px-4 py-2 font-mono text-xs">
+                    <Link href={`/admin/users/${u.id}`} className="hover:text-[var(--accent)] hover:underline">
+                      {u.email}
+                    </Link>
+                  </td>
                   <td className="px-4 py-2">{u.name || "—"}</td>
                   <td className="px-4 py-2">
                     {u.emailVerified ? (
