@@ -1,8 +1,8 @@
 import Link from "next/link";
-import Image from "next/image";
 import { and, asc, count, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { formatUsd } from "@/lib/format";
+import { ProductRows } from "./ProductRows";
 
 export const dynamic = "force-dynamic";
 
@@ -220,46 +220,24 @@ export default async function ProductsAdmin({
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
-            {rows.map((r) => {
-              const stats = statsByProduct.get(r.id);
-              const sales = salesByProduct.get(r.id);
-              const img = imageByProduct.get(r.id);
-              return (
-                <tr key={r.id} className="hover:bg-[var(--background)]">
-                  <td className="px-4 py-2">
-                    <div className="relative h-10 w-10 overflow-hidden rounded-sm bg-[var(--background)]">
-                      {img && (
-                        <Image src={img} alt="" fill sizes="40px" className="object-cover" />
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-2 font-medium">
-                    <Link href={`/admin/products/${r.id}`} className="hover:text-[var(--accent)] hover:underline">
-                      {r.title}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-2 font-mono text-xs">{r.articleNo}</td>
-                  <td className="px-4 py-2 text-[var(--muted)]">{r.division}</td>
-                  <td className="px-4 py-2">{formatUsd(Number(r.priceUsd))}</td>
-                  <td className="px-4 py-2">
-                    {stats ? `${stats.stock} (${stats.variantCount} sz)` : "—"}
-                  </td>
-                  <td className="px-4 py-2">{sales ? Number(sales.units).toLocaleString() : 0}</td>
-                  <td className="px-4 py-2">{formatUsd(sales ? Number(sales.revenue) : 0)}</td>
-                  <td className="px-4 py-2">
-                    <span
-                      className={
-                        r.active
-                          ? "rounded-sm bg-emerald-500/15 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-emerald-300"
-                          : "rounded-sm bg-zinc-500/15 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-zinc-400"
-                      }
-                    >
-                      {r.active ? "Active" : "Hidden"}
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
+            <ProductRows
+              rows={rows.map((r) => {
+                const stats = statsByProduct.get(r.id);
+                const sales = salesByProduct.get(r.id);
+                return {
+                  id: r.id,
+                  img: imageByProduct.get(r.id) ?? null,
+                  title: r.title,
+                  articleNo: r.articleNo,
+                  division: r.division,
+                  price: formatUsd(Number(r.priceUsd)),
+                  stock: stats ? `${stats.stock} (${stats.variantCount} sz)` : "—",
+                  sold: sales ? Number(sales.units).toLocaleString() : "0",
+                  revenue: formatUsd(sales ? Number(sales.revenue) : 0),
+                  active: r.active,
+                };
+              })}
+            />
             {rows.length === 0 && (
               <tr>
                 <td colSpan={9} className="px-4 py-10 text-center text-sm text-[var(--muted)]">

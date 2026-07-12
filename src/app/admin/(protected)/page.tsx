@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { count, eq, gte, sql, sum } from "drizzle-orm";
 import { db, schema } from "@/db";
+import { RecentOrderRows } from "./RecentOrderRows";
 
 export const dynamic = "force-dynamic"; // always render fresh stats
 
@@ -102,18 +103,15 @@ export default async function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
-                {recentOrders.map((o) => (
-                  <tr key={o.id}>
-                    <td className="px-4 py-3 text-[var(--muted)]">
-                      {o.createdAt.toLocaleString("en-GB", { timeZone: "Asia/Singapore" })} SGT
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs">{o.email}</td>
-                    <td className="px-4 py-3">${Number(o.totalUsd).toFixed(2)}</td>
-                    <td className="px-4 py-3">
-                      <StatusPill status={o.status} />
-                    </td>
-                  </tr>
-                ))}
+                <RecentOrderRows
+                  rows={recentOrders.map((o) => ({
+                    id: o.id,
+                    when: `${o.createdAt.toLocaleString("en-GB", { timeZone: "Asia/Singapore" })} SGT`,
+                    email: o.email,
+                    total: `$${Number(o.totalUsd).toFixed(2)}`,
+                    status: o.status,
+                  }))}
+                />
               </tbody>
             </table>
           </div>
@@ -167,24 +165,6 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
       <div className="mt-1 text-2xl font-bold">{value}</div>
       {sub && <div className="mt-1 text-xs text-[var(--muted)]">{sub}</div>}
     </div>
-  );
-}
-
-function StatusPill({ status }: { status: string }) {
-  const tone =
-    status === "paid"
-      ? "bg-emerald-500/15 text-emerald-300"
-      : status === "shipped"
-        ? "bg-blue-500/15 text-blue-300"
-        : status === "refunded" || status === "cancelled"
-          ? "bg-red-500/15 text-red-300"
-          : "bg-yellow-500/15 text-yellow-300";
-  return (
-    <span
-      className={`inline-block rounded-sm px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${tone}`}
-    >
-      {status}
-    </span>
   );
 }
 
