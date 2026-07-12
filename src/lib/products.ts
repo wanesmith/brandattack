@@ -112,6 +112,20 @@ export async function getAllProducts(): Promise<Product[]> {
   return hydrate(rows);
 }
 
+/** Map image URLs → the product id they belong to (for linking hero slides). */
+export async function getProductIdsByImageUrls(
+  urls: string[]
+): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  if (urls.length === 0) return map;
+  const rows = await db
+    .select({ url: schema.productImages.url, productId: schema.productImages.productId })
+    .from(schema.productImages)
+    .where(inArray(schema.productImages.url, urls));
+  for (const r of rows) if (!map.has(r.url)) map.set(r.url, r.productId);
+  return map;
+}
+
 /**
  * The hero-carousel images used when the admin hasn't set any: the category
  * heroes plus a few product shots, deduped. Shared by the landing page and the

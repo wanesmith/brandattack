@@ -9,6 +9,7 @@ import {
   getBiggestDiscounts,
   getCategoryHero,
   getJustInProducts,
+  getProductIdsByImageUrls,
 } from "@/lib/products";
 
 export default async function Home() {
@@ -44,6 +45,13 @@ export default async function Home() {
             ].filter((u): u is string => Boolean(u))
           )
         ).slice(0, 6);
+  // Each hero slide links to the product it shows (custom uploads fall back to
+  // the hero CTA / shop).
+  const heroImageProducts = await getProductIdsByImageUrls(heroImages);
+  const heroSlides = heroImages.map((url) => {
+    const pid = heroImageProducts.get(url);
+    return { url, href: pid ? `/p/${pid}` : hero.ctaHref || "/shop" };
+  });
 
   // Hero copy is admin-editable (Homepage hero settings). When it's still the
   // built-in default, show the translated version; a custom admin headline is
@@ -92,17 +100,17 @@ export default async function Home() {
       />
       {/* ========== FULL-BLEED HERO — Adidas signature ========== */}
       <section className="relative h-[min(85vh,820px)] w-full overflow-hidden bg-ink">
-        <HeroCarousel images={heroImages} />
-        {/* Gradient legibility wash */}
-        <div className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/30 to-transparent" />
+        <HeroCarousel slides={heroSlides} />
+        {/* Gradient legibility wash — lets clicks fall through to the slide link */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/30 to-transparent" />
 
         {/* Three-stripe decoration top-right */}
-        <div className="absolute right-8 top-8 stripes-3 lg text-paper/70">
+        <div className="pointer-events-none absolute right-8 top-8 stripes-3 lg text-paper/70">
           <span /><span /><span />
         </div>
 
-        {/* Bottom-aligned content — Adidas signature placement */}
-        <div className="absolute inset-x-0 bottom-0 px-6 py-12 sm:py-16 lg:py-20">
+        {/* Bottom-aligned content — clicks pass through except on the buttons */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 px-6 py-12 sm:py-16 lg:py-20">
           <div className="mx-auto max-w-[1400px]">
             {hero.eyebrow && (
               <p className="reveal label-mono text-paper/70">{heroEyebrow}</p>
@@ -115,7 +123,7 @@ export default async function Home() {
                 </span>
               ))}
             </h1>
-            <div className="reveal reveal-d2 mt-8 flex flex-wrap items-center gap-5">
+            <div className="reveal reveal-d2 pointer-events-auto mt-8 flex flex-wrap items-center gap-5">
               <Link href={hero.ctaHref || "/shop"} className="btn-solid !bg-paper !text-ink !border-paper hover:!bg-accent hover:!text-paper hover:!border-accent">
                 {heroCta}
                 <span aria-hidden>→</span>
