@@ -111,6 +111,7 @@ export const ko: Dictionary = {
     linkSizeGuide: "사이즈 가이드",
     linkFaq: "자주 묻는 질문",
     linkContact: "문의",
+    linkSupport: "고객지원",
     linkAbout: "소개",
     linkTheLot: "이번 물량",
     linkPress: "언론",

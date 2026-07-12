@@ -113,6 +113,7 @@ export const th: Dictionary = {
     linkSizeGuide: "คู่มือไซซ์",
     linkFaq: "คำถามที่พบบ่อย",
     linkContact: "ติดต่อ",
+    linkSupport: "ฝ่ายช่วยเหลือ",
     linkAbout: "เกี่ยวกับเรา",
     linkTheLot: "ล็อตสินค้า",
     linkPress: "ข่าวสาร",

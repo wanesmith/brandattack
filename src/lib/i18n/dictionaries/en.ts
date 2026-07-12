@@ -113,6 +113,7 @@ export const en = {
     linkSizeGuide: "Size guide",
     linkFaq: "FAQ",
     linkContact: "Contact",
+    linkSupport: "Support",
     linkAbout: "About",
     linkTheLot: "The lot",
     linkPress: "Press",

@@ -89,6 +89,7 @@ export async function SiteFooter() {
           <FooterCol
             title={t("footer.colCustomer")}
             links={[
+              [t("footer.linkSupport"), "/support"],
               [t("footer.linkShipping"), "/shipping"],
               [t("footer.linkReturns"), "/shipping"],
               [t("footer.linkSizeGuide"), "/shipping"],

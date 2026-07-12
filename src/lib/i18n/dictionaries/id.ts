@@ -113,6 +113,7 @@ export const id: Dictionary = {
     linkSizeGuide: "Panduan ukuran",
     linkFaq: "FAQ",
     linkContact: "Kontak",
+    linkSupport: "Dukungan",
     linkAbout: "Tentang",
     linkTheLot: "Stok ini",
     linkPress: "Pers",

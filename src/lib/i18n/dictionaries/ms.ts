@@ -113,6 +113,7 @@ export const ms: Dictionary = {
     linkSizeGuide: "Panduan saiz",
     linkFaq: "Soalan lazim",
     linkContact: "Hubungi",
+    linkSupport: "Sokongan",
     linkAbout: "Perihal",
     linkTheLot: "Lot ini",
     linkPress: "Media",

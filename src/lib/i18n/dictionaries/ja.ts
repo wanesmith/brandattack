@@ -111,6 +111,7 @@ export const ja: Dictionary = {
     linkSizeGuide: "サイズガイド",
     linkFaq: "よくある質問",
     linkContact: "お問い合わせ",
+    linkSupport: "サポート",
     linkAbout: "会社概要",
     linkTheLot: "この入荷",
     linkPress: "プレス",

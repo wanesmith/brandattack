@@ -113,6 +113,7 @@ export const fil: Dictionary = {
     linkSizeGuide: "Gabay sa sukat",
     linkFaq: "FAQ",
     linkContact: "Makipag-ugnayan",
+    linkSupport: "Suporta",
     linkAbout: "Tungkol",
     linkTheLot: "Ang stock",
     linkPress: "Press",

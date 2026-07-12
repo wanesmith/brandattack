@@ -110,6 +110,7 @@ export const zhHant: Dictionary = {
     linkSizeGuide: "尺寸指南",
     linkFaq: "常見問題",
     linkContact: "聯絡我們",
+    linkSupport: "客戶支援",
     linkAbout: "關於",
     linkTheLot: "本批貨",
     linkPress: "媒體",

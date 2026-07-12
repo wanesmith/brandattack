@@ -113,6 +113,7 @@ export const vi: Dictionary = {
     linkSizeGuide: "Hướng dẫn chọn cỡ",
     linkFaq: "Câu hỏi thường gặp",
     linkContact: "Liên hệ",
+    linkSupport: "Hỗ trợ",
     linkAbout: "Giới thiệu",
     linkTheLot: "Lô hàng",
     linkPress: "Báo chí",
