@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ProductCard } from "@/components/ProductCard";
+import { HeroCarousel } from "@/components/HeroCarousel";
 import { getBranding } from "@/lib/settings";
 import { getT } from "@/lib/i18n/server";
 import {
@@ -26,12 +27,21 @@ export default async function Home() {
     ]);
 
   const { hero } = branding;
-  const autoImage = heroFootwear?.url ?? heroMen?.url ?? all[0]?.images[0] ?? null;
-  // Admin-set hero image wins; otherwise auto-pick from the catalogue.
-  const leadImage = hero.imageUrl || autoImage;
-  // A relative path can use Next's optimizer; an arbitrary pasted URL uses a
-  // plain <img> so it works without configuring remote image domains.
-  const heroIsRelative = leadImage?.startsWith("/") ?? false;
+  // Hero carousel images: admin-set hero image first (if any), then the
+  // category heroes, then a few product shots — deduped, empties dropped.
+  const heroImages = Array.from(
+    new Set(
+      [
+        hero.imageUrl,
+        heroFootwear?.url,
+        heroMen?.url,
+        heroWomen?.url,
+        heroApparel?.url,
+        heroKids?.url,
+        ...all.slice(0, 6).map((p) => p.images[0]),
+      ].filter((u): u is string => Boolean(u))
+    )
+  ).slice(0, 6);
 
   // Hero copy is admin-editable (Homepage hero settings). When it's still the
   // built-in default, show the translated version; a custom admin headline is
@@ -80,24 +90,7 @@ export default async function Home() {
       />
       {/* ========== FULL-BLEED HERO — Adidas signature ========== */}
       <section className="relative h-[min(85vh,820px)] w-full overflow-hidden bg-ink">
-        {leadImage &&
-          (heroIsRelative ? (
-            <Image
-              src={leadImage}
-              alt=""
-              fill
-              sizes="100vw"
-              priority
-              className="reveal object-cover object-center opacity-90"
-            />
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={leadImage}
-              alt=""
-              className="reveal absolute inset-0 h-full w-full object-cover object-center opacity-90"
-            />
-          ))}
+        <HeroCarousel images={heroImages} />
         {/* Gradient legibility wash */}
         <div className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/30 to-transparent" />
 
