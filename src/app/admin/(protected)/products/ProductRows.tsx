@@ -9,6 +9,7 @@ export type ProductRow = {
   articleNo: string;
   division: string;
   price: string;
+  total: string;
   stock: string;
   sold: string;
   revenue: string;
@@ -35,6 +36,7 @@ export function ProductRows({ rows }: { rows: ProductRow[] }) {
           <td className="px-4 py-2 font-mono text-xs">{r.articleNo}</td>
           <td className="px-4 py-2 text-[var(--muted)]">{r.division}</td>
           <td className="px-4 py-2">{r.price}</td>
+          <td className="px-4 py-2 font-medium">{r.total}</td>
           <td className="px-4 py-2">{r.stock}</td>
           <td className="px-4 py-2">{r.sold}</td>
           <td className="px-4 py-2">{r.revenue}</td>

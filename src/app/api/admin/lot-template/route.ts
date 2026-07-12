@@ -37,6 +37,7 @@ export async function GET() {
     ["Total Quantity", "Total units for this ArticleNo (should equal the sum of its sizes)."],
     ["Price", "Wholesale/cost in USD. Retail = Price × markup, capped at 0.7 × RRP."],
     ["RRP Price (USD)", "Recommended retail price in USD."],
+    ["Status", "Optional. Active (default) or Hidden. Omit the column to leave existing status untouched."],
     ["", ""],
     ["Images", "Name files <ArticleNo>-1.jpg, <ArticleNo>-2.jpg … and upload them in the .zip,"],
     ["", "or list them explicitly in the Pictures List sheet. Formats: jpg, jpeg, png, webp."],
@@ -60,6 +61,7 @@ export async function GET() {
     "Total Quantity",
     "Price",
     "RRP Price (USD)",
+    "Status",
   ];
   asset.addRow(["Asset Report"]); // row 1 — title/banner (importer skips it)
   asset.addRow(HEADERS); // row 2 — headers
@@ -75,6 +77,7 @@ export async function GET() {
     12,
     42.5,
     189.99,
+    "Active",
   ]);
   asset.addRow([
     "HK2891",
@@ -88,6 +91,7 @@ export async function GET() {
     10,
     12.0,
     45.0,
+    "Hidden",
   ]);
   asset.getRow(1).font = { bold: true, size: 12 };
   asset.getRow(2).font = { bold: true };

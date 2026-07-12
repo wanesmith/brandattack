@@ -137,6 +137,14 @@ export default async function ProductsAdmin({
       <div className="flex items-baseline justify-between">
         <h1 className="text-3xl font-bold">Products</h1>
         <div className="flex items-center gap-2">
+          <a
+            href={`/api/admin/products/export${
+              hasFilters ? `?${new URLSearchParams(filterParams)}` : ""
+            }`}
+            className="rounded-sm border border-[var(--border)] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          >
+            Export CSV
+          </a>
           <Link
             href="/admin/products/new"
             className="rounded-sm border border-[var(--accent)] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-[var(--accent)] hover:bg-[var(--accent)] hover:text-black"
@@ -213,6 +221,7 @@ export default async function ProductsAdmin({
               <th className="px-4 py-3">ArticleNo</th>
               <th className="px-4 py-3">Division</th>
               <th className="px-4 py-3">Price</th>
+              <th className="px-4 py-3">Total</th>
               <th className="px-4 py-3">Stock</th>
               <th className="px-4 py-3">Sold</th>
               <th className="px-4 py-3">Revenue</th>
@@ -224,6 +233,9 @@ export default async function ProductsAdmin({
               rows={rows.map((r) => {
                 const stats = statsByProduct.get(r.id);
                 const sales = salesByProduct.get(r.id);
+                const stockNum = stats ? Number(stats.stock) : 0;
+                const soldNum = sales ? Number(sales.units) : 0;
+                const totalNum = stockNum + soldNum;
                 return {
                   id: r.id,
                   img: imageByProduct.get(r.id) ?? null,
@@ -231,8 +243,11 @@ export default async function ProductsAdmin({
                   articleNo: r.articleNo,
                   division: r.division,
                   price: formatUsd(Number(r.priceUsd)),
-                  stock: stats ? `${stats.stock} (${stats.variantCount} sz)` : "—",
-                  sold: sales ? Number(sales.units).toLocaleString() : "0",
+                  total: stats
+                    ? `${totalNum.toLocaleString()} (${stats.variantCount} sz)`
+                    : "—",
+                  stock: stats ? stockNum.toLocaleString() : "—",
+                  sold: soldNum.toLocaleString(),
                   revenue: formatUsd(sales ? Number(sales.revenue) : 0),
                   active: r.active,
                 };
@@ -240,7 +255,7 @@ export default async function ProductsAdmin({
             />
             {rows.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4 py-10 text-center text-sm text-[var(--muted)]">
+                <td colSpan={10} className="px-4 py-10 text-center text-sm text-[var(--muted)]">
                   No products match that search.
                 </td>
               </tr>

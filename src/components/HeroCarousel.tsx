@@ -51,6 +51,22 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
           </div>
         );
       })}
+
+      {slides.length > 1 && (
+        <div className="pointer-events-auto absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 gap-2">
+          {slides.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setIdx(i)}
+              aria-label={`Show image ${i + 1}`}
+              className={`h-1.5 rounded-full transition-all ${
+                i === idx ? "w-6 bg-paper" : "w-1.5 bg-paper/50 hover:bg-paper/80"
+              }`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

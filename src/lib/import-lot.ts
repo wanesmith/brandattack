@@ -43,6 +43,8 @@ type RawProduct = {
   totalQuantity: number;
   wholesaleUsd: number;
   rrpUsd: number;
+  /** From an optional "Status" column. null = column absent (leave active as-is on update). */
+  active: boolean | null;
 };
 
 type RawVariant = { articleNo: string; size: string; qty: number };
@@ -68,6 +70,14 @@ function normGender(s: unknown): RawProduct["gender"] {
 
 function normDivision(s: unknown): RawProduct["division"] | null {
   return DIVISION_MAP[String(s ?? "").toUpperCase().trim()] ?? null;
+}
+
+// Optional "Status" column: anything but a hidden/inactive marker means active.
+// Empty defaults to active.
+function normActive(s: unknown): boolean {
+  const v = String(s ?? "").trim().toLowerCase();
+  if (!v) return true;
+  return !["hidden", "inactive", "no", "false", "0", "off", "disabled"].includes(v);
 }
 
 function titleCase(s: string): string {
@@ -152,6 +162,7 @@ async function parseXlsx(filePath: string) {
     return v;
   };
 
+  const hasStatusColumn = headerIndex.has("Status");
   const products: RawProduct[] = [];
   for (let r = 3; r <= assetSheet.rowCount; r++) {
     const row = assetSheet.getRow(r);
@@ -160,6 +171,7 @@ async function parseXlsx(filePath: string) {
     const division = normDivision(get(row, "Division"));
     if (!division) continue;
     products.push({
+      active: hasStatusColumn ? normActive(get(row, "Status")) : null,
       articleNo,
       description: String(get(row, "Item Description") ?? "").trim(),
       season: String(get(row, "Season") ?? "").trim(),
@@ -366,7 +378,7 @@ export async function importLot(
             season: p.season,
             rrpUsd: p.rrpUsd.toFixed(2),
             priceUsd: priceUsd.toFixed(2),
-            active: true,
+            active: p.active ?? true,
             updatedAt: new Date(),
           })
           .onConflictDoUpdate({
@@ -377,11 +389,14 @@ export async function importLot(
               division: p.division,
               gender: p.gender,
               sportsCode: p.sportsCode,
-              productGroup: p.productGroup,
               productType: p.productType,
+              productGroup: p.productGroup,
               season: p.season,
               rrpUsd: p.rrpUsd.toFixed(2),
               priceUsd: priceUsd.toFixed(2),
+              // Only overwrite status when the sheet actually has a Status column,
+              // so re-imports don't silently un-hide manually hidden products.
+              ...(p.active !== null ? { active: p.active } : {}),
               updatedAt: new Date(),
             },
           });
