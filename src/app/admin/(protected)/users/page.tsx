@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { and, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
+import { UserRows } from "./UserRows";
 
 export const dynamic = "force-dynamic";
 
@@ -122,30 +123,17 @@ export default async function UsersAdmin({ searchParams }: { searchParams: Searc
                 </td>
               </tr>
             ) : (
-              users.map((u) => (
-                <tr key={u.id} className="hover:bg-[var(--background)]">
-                  <td className="px-4 py-2 font-mono text-xs">
-                    <Link href={`/admin/users/${u.id}`} className="hover:text-[var(--accent)] hover:underline">
-                      {u.email}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-2">{u.name || "—"}</td>
-                  <td className="px-4 py-2">
-                    {u.emailVerified ? (
-                      <span className="font-mono text-[10px] uppercase tracking-wider text-emerald-400">
-                        Verified
-                      </span>
-                    ) : (
-                      <span className="font-mono text-[10px] uppercase tracking-wider text-amber-400">
-                        No
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2">{ordersByEmail.get(u.email) ?? 0}</td>
-                  <td className="px-4 py-2 text-[var(--muted)]">{u.hasAddress ? "✓" : "—"}</td>
-                  <td className="px-4 py-2 text-[var(--muted)]">{u.createdAt.toLocaleDateString()}</td>
-                </tr>
-              ))
+              <UserRows
+                rows={users.map((u) => ({
+                  id: u.id,
+                  email: u.email,
+                  name: u.name ?? "",
+                  verified: u.emailVerified,
+                  orders: ordersByEmail.get(u.email) ?? 0,
+                  hasAddress: Boolean(u.hasAddress),
+                  joined: u.createdAt.toLocaleDateString(),
+                }))}
+              />
             )}
           </tbody>
         </table>
