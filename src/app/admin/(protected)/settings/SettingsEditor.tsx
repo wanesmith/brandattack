@@ -287,6 +287,8 @@ function MultiImageField({
   const [error, setError] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [division, setDivision] = useState("");
+  const [gender, setGender] = useState("");
   const [results, setResults] = useState<{ url: string; title: string }[]>([]);
   const [loadingResults, setLoadingResults] = useState(false);
   const [page, setPage] = useState(0);
@@ -303,13 +305,16 @@ function MultiImageField({
 
   const commit = (next: string[]) => onChange(JSON.stringify(next));
 
+  const imagesQuery = (p: number) =>
+    `/api/admin/images?q=${encodeURIComponent(query)}&division=${division}&gender=${gender}&page=${p}`;
+
   // Load catalogue images (debounced) while the picker is open.
   useEffect(() => {
     if (!pickerOpen) return;
     let cancelled = false;
     setLoadingResults(true);
     const t = setTimeout(() => {
-      fetch(`/api/admin/images?q=${encodeURIComponent(query)}&page=0`)
+      fetch(imagesQuery(0))
         .then((r) => r.json())
         .then((d) => {
           if (!cancelled) {
@@ -332,15 +337,13 @@ function MultiImageField({
       cancelled = true;
       clearTimeout(t);
     };
-  }, [pickerOpen, query]);
+  }, [pickerOpen, query, division, gender]);
 
   async function loadMore() {
     const next = page + 1;
     setLoadingMore(true);
     try {
-      const d = await fetch(
-        `/api/admin/images?q=${encodeURIComponent(query)}&page=${next}`
-      ).then((r) => r.json());
+      const d = await fetch(imagesQuery(next)).then((r) => r.json());
       setResults((prev) => [...prev, ...(Array.isArray(d.images) ? d.images : [])]);
       setHasMore(Boolean(d.hasMore));
       setPage(next);
@@ -405,13 +408,38 @@ function MultiImageField({
 
       {pickerOpen && (
         <div className="mt-3 rounded-sm border border-[var(--border)] bg-[var(--background)] p-3">
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search products by name or article no…"
-            className="w-full rounded-sm border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none"
-          />
+          <div className="flex flex-wrap gap-2">
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search products by name or article no…"
+              className="min-w-[12rem] flex-1 rounded-sm border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none"
+            />
+            <select
+              value={division}
+              onChange={(e) => setDivision(e.target.value)}
+              aria-label="Division"
+              className="rounded-sm border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none"
+            >
+              <option value="">All divisions</option>
+              <option value="FOOTWEAR">Footwear</option>
+              <option value="APPAREL">Apparel</option>
+              <option value="HARDWARE">Hardware</option>
+            </select>
+            <select
+              value={gender}
+              onChange={(e) => setGender(e.target.value)}
+              aria-label="Gender"
+              className="rounded-sm border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none"
+            >
+              <option value="">All genders</option>
+              <option value="MEN">Men</option>
+              <option value="WOMEN">Women</option>
+              <option value="UNISEX">Unisex</option>
+              <option value="KIDS">Kids</option>
+            </select>
+          </div>
           {loadingResults ? (
             <p className="mt-2 text-xs text-[var(--muted)]">Loading…</p>
           ) : results.length === 0 ? (

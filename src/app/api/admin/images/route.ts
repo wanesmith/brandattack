@@ -15,6 +15,12 @@ export async function GET(req: Request) {
   const q = url.searchParams.get("q")?.trim() ?? "";
   const page = Math.max(0, parseInt(url.searchParams.get("page") ?? "0", 10) || 0);
   const PAGE_SIZE = 60;
+
+  const DIVISIONS = schema.divisionEnum.enumValues as readonly string[];
+  const GENDERS = schema.genderEnum.enumValues as readonly string[];
+  const divisionParam = url.searchParams.get("division") ?? "";
+  const genderParam = url.searchParams.get("gender") ?? "";
+
   const conditions = [
     eq(schema.products.active, true),
     eq(schema.productImages.position, 1),
@@ -26,6 +32,12 @@ export async function GET(req: Request) {
         ilike(schema.products.articleNo, `%${q}%`)
       )!
     );
+  }
+  if (DIVISIONS.includes(divisionParam)) {
+    conditions.push(eq(schema.products.division, divisionParam as (typeof schema.divisionEnum.enumValues)[number]));
+  }
+  if (GENDERS.includes(genderParam)) {
+    conditions.push(eq(schema.products.gender, genderParam as (typeof schema.genderEnum.enumValues)[number]));
   }
 
   const rows = await db
