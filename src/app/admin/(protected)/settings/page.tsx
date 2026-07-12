@@ -1,4 +1,5 @@
 import { getSettingsForAdmin } from "@/lib/settings";
+import { getDefaultHeroImages } from "@/lib/products";
 import { SettingsEditor } from "./SettingsEditor";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +10,10 @@ export const metadata = {
 };
 
 export default async function SettingsAdmin() {
-  const fields = await getSettingsForAdmin();
+  const [fields, heroAutoImages] = await Promise.all([
+    getSettingsForAdmin(),
+    getDefaultHeroImages(),
+  ]);
 
   return (
     <div>
@@ -18,7 +22,7 @@ export default async function SettingsAdmin() {
         Branding and API credentials. Branding changes go live on the storefront
         immediately. Secret keys are stored securely and never shown again after saving.
       </p>
-      <SettingsEditor fields={fields} />
+      <SettingsEditor fields={fields} heroAutoImages={heroAutoImages} />
     </div>
   );
 }

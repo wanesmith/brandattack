@@ -112,6 +112,34 @@ export async function getAllProducts(): Promise<Product[]> {
   return hydrate(rows);
 }
 
+/**
+ * The hero-carousel images used when the admin hasn't set any: the category
+ * heroes plus a few product shots, deduped. Shared by the landing page and the
+ * admin settings preview so both show the same "current" images.
+ */
+export async function getDefaultHeroImages(limit = 6): Promise<string[]> {
+  const [all, heroMen, heroWomen, heroKids, heroFootwear, heroApparel] = await Promise.all([
+    getAllProducts(),
+    getCategoryHero("gender", "MEN"),
+    getCategoryHero("gender", "WOMEN"),
+    getCategoryHero("gender", "KIDS"),
+    getCategoryHero("division", "FOOTWEAR"),
+    getCategoryHero("division", "APPAREL"),
+  ]);
+  return Array.from(
+    new Set(
+      [
+        heroFootwear?.url,
+        heroMen?.url,
+        heroWomen?.url,
+        heroApparel?.url,
+        heroKids?.url,
+        ...all.slice(0, limit).map((p) => p.images[0]),
+      ].filter((u): u is string => Boolean(u))
+    )
+  ).slice(0, limit);
+}
+
 export async function filterProducts(filters: Filters): Promise<Product[]> {
   const conditions = [eq(schema.products.active, true)];
   if (filters.division) {

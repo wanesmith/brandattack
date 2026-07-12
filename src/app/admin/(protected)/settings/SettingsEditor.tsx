@@ -16,7 +16,13 @@ type Field = {
   masked?: string;
 };
 
-export function SettingsEditor({ fields }: { fields: Field[] }) {
+export function SettingsEditor({
+  fields,
+  heroAutoImages = [],
+}: {
+  fields: Field[];
+  heroAutoImages?: string[];
+}) {
   const [values, setValues] = useState<Record<string, string>>(
     Object.fromEntries(fields.map((f) => [f.key, f.value]))
   );
@@ -74,7 +80,13 @@ export function SettingsEditor({ fields }: { fields: Field[] }) {
             {fields
               .filter((f) => f.group === group)
               .map((f) => (
-                <FieldRow key={f.key} field={f} value={values[f.key] ?? ""} onChange={update} />
+                <FieldRow
+                  key={f.key}
+                  field={f}
+                  value={values[f.key] ?? ""}
+                  onChange={update}
+                  heroAutoImages={heroAutoImages}
+                />
               ))}
           </div>
         </section>
@@ -102,10 +114,12 @@ function FieldRow({
   field: f,
   value,
   onChange,
+  heroAutoImages = [],
 }: {
   field: Field;
   value: string;
   onChange: (key: string, value: string) => void;
+  heroAutoImages?: string[];
 }) {
   const inputClass =
     "w-full rounded-sm border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none";
@@ -120,7 +134,11 @@ function FieldRow({
         {f.type === "image" ? (
           <ImageField value={value} placeholder={f.placeholder} onChange={(v) => onChange(f.key, v)} />
         ) : f.type === "images" ? (
-          <MultiImageField value={value} onChange={(v) => onChange(f.key, v)} />
+          <MultiImageField
+            value={value}
+            autoImages={heroAutoImages}
+            onChange={(v) => onChange(f.key, v)}
+          />
         ) : f.type === "textarea" ? (
           <textarea
             id={`f-${f.key}`}
@@ -257,9 +275,11 @@ function ImageField({
 function MultiImageField({
   value,
   onChange,
+  autoImages = [],
 }: {
   value: string;
   onChange: (v: string) => void;
+  autoImages?: string[];
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -321,9 +341,35 @@ function MultiImageField({
       </div>
       {error && <p className="mt-1 text-xs text-red-300">{error}</p>}
       {images.length === 0 ? (
-        <p className="mt-2 text-xs text-[var(--muted)]">
-          No hero images set — the carousel auto-uses category &amp; product images.
-        </p>
+        <div className="mt-3">
+          <p className="mb-2 text-xs text-[var(--muted)]">
+            No custom hero images set. The carousel is currently auto-showing these{" "}
+            {autoImages.length} image{autoImages.length === 1 ? "" : "s"} from your catalogue.
+            Upload above to override, or start from these:
+          </p>
+          {autoImages.length > 0 && (
+            <>
+              <div className="grid grid-cols-2 gap-2 opacity-80 sm:grid-cols-3">
+                {autoImages.map((url) => (
+                  <div
+                    key={url}
+                    className="relative aspect-video overflow-hidden rounded-sm border border-[var(--border)] bg-[var(--background)]"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt="" className="h-full w-full object-cover" />
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => commit(autoImages)}
+                className="mt-2 font-mono text-xs uppercase tracking-wider text-[var(--accent)] hover:underline"
+              >
+                Customise these →
+              </button>
+            </>
+          )}
+        </div>
       ) : (
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
           {images.map((url, i) => (
