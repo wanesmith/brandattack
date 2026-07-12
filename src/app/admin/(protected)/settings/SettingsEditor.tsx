@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
 
 type Field = {
@@ -284,6 +284,10 @@ function MultiImageField({
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<{ url: string; title: string }[]>([]);
+  const [loadingResults, setLoadingResults] = useState(false);
 
   let images: string[] = [];
   try {
@@ -294,6 +298,30 @@ function MultiImageField({
   }
 
   const commit = (next: string[]) => onChange(JSON.stringify(next));
+
+  // Load catalogue images (debounced) while the picker is open.
+  useEffect(() => {
+    if (!pickerOpen) return;
+    let cancelled = false;
+    setLoadingResults(true);
+    const t = setTimeout(() => {
+      fetch(`/api/admin/images?q=${encodeURIComponent(query)}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (!cancelled) setResults(Array.isArray(d.images) ? d.images : []);
+        })
+        .catch(() => {
+          if (!cancelled) setResults([]);
+        })
+        .finally(() => {
+          if (!cancelled) setLoadingResults(false);
+        });
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [pickerOpen, query]);
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -328,17 +356,68 @@ function MultiImageField({
 
   return (
     <div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
           className="rounded-sm border border-[var(--border)] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider hover:border-[var(--accent)] disabled:opacity-50"
         >
-          {uploading ? "Uploading…" : "+ Add images"}
+          {uploading ? "Uploading…" : "Upload"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setPickerOpen((o) => !o)}
+          className="rounded-sm border border-[var(--border)] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider hover:border-[var(--accent)]"
+        >
+          {pickerOpen ? "Close picker" : "Choose from catalogue"}
         </button>
         <input ref={fileRef} type="file" accept="image/*" multiple onChange={onPick} className="hidden" />
       </div>
+
+      {pickerOpen && (
+        <div className="mt-3 rounded-sm border border-[var(--border)] bg-[var(--background)] p-3">
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search products by name or article no…"
+            className="w-full rounded-sm border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none"
+          />
+          {loadingResults ? (
+            <p className="mt-2 text-xs text-[var(--muted)]">Loading…</p>
+          ) : results.length === 0 ? (
+            <p className="mt-2 text-xs text-[var(--muted)]">No matching product images.</p>
+          ) : (
+            <div className="mt-2 grid max-h-64 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4">
+              {results.map((r) => {
+                const added = images.includes(r.url);
+                return (
+                  <button
+                    key={r.url}
+                    type="button"
+                    title={r.title}
+                    onClick={() => !added && commit([...images, r.url].slice(0, 10))}
+                    className={`relative aspect-video overflow-hidden rounded-sm border ${
+                      added
+                        ? "border-[var(--accent)]"
+                        : "border-[var(--border)] hover:border-[var(--accent)]"
+                    }`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={r.url} alt="" className="h-full w-full object-cover" />
+                    {added && (
+                      <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-[10px] font-bold uppercase text-white">
+                        Added ✓
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
       {error && <p className="mt-1 text-xs text-red-300">{error}</p>}
       {images.length === 0 ? (
         <div className="mt-3">
