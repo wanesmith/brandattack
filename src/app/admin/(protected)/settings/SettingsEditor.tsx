@@ -89,6 +89,7 @@ export function SettingsEditor({
                 />
               ))}
           </div>
+          {group === "Email" && <TestEmailButton />}
         </section>
       ))}
 
@@ -472,6 +473,76 @@ function MultiImageField({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function TestEmailButton() {
+  const [to, setTo] = useState("");
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  async function send() {
+    setSending(true);
+    setResult(null);
+    try {
+      const res = await fetch("/api/admin/email-test", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ to }),
+      });
+      const d = await res.json().catch(() => null);
+      if (!res.ok) {
+        setResult({ ok: false, msg: d?.error ?? `HTTP ${res.status}` });
+      } else if (d.delivered) {
+        setResult({ ok: true, msg: `Sent via ${d.provider} — check the inbox.` });
+      } else {
+        setResult({
+          ok: false,
+          msg: d.note
+            ? `Not delivered (${d.provider}): ${d.note}`
+            : `Not delivered — provider "${d.provider}". Save your settings first, then check the App Password.`,
+        });
+      }
+    } catch (e) {
+      setResult({ ok: false, msg: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="border-t border-[var(--border)] px-5 py-4">
+      <div className="grid gap-1.5 sm:grid-cols-[220px_1fr] sm:gap-4">
+        <span className="pt-2 text-sm font-medium">Send a test email</span>
+        <div>
+          <div className="flex flex-wrap gap-2">
+            <input
+              type="email"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              placeholder="you@example.com"
+              className="min-w-[12rem] flex-1 rounded-sm border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={send}
+              disabled={sending || !to}
+              className="rounded-sm border border-[var(--accent)] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-[var(--accent)] hover:bg-[var(--accent)] hover:text-black disabled:opacity-50"
+            >
+              {sending ? "Sending…" : "Send test"}
+            </button>
+          </div>
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            Uses your saved settings — click Save settings first, then test.
+          </p>
+          {result && (
+            <p className={`mt-1 text-xs ${result.ok ? "text-emerald-400" : "text-red-400"}`}>
+              {result.msg}
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

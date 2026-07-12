@@ -32,7 +32,11 @@ export async function sendEmail(input: SendEmailInput): Promise<SendResult> {
     // to the console so the developer can still complete the action.
     console.error("[email] send failed, falling back to console:", err);
     logToConsole(from, input, "delivery failed");
-    return { delivered: false, provider: cfg.provider || "none", note: "send failed" };
+    return {
+      delivered: false,
+      provider: cfg.provider || "none",
+      note: err instanceof Error ? err.message : "send failed",
+    };
   }
 
   logToConsole(from, input, cfg.provider ? "provider not fully configured" : "dev mode");
