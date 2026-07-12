@@ -27,21 +27,23 @@ export default async function Home() {
     ]);
 
   const { hero } = branding;
-  // Hero carousel images: admin-set hero image first (if any), then the
-  // category heroes, then a few product shots — deduped, empties dropped.
-  const heroImages = Array.from(
-    new Set(
-      [
-        hero.imageUrl,
-        heroFootwear?.url,
-        heroMen?.url,
-        heroWomen?.url,
-        heroApparel?.url,
-        heroKids?.url,
-        ...all.slice(0, 6).map((p) => p.images[0]),
-      ].filter((u): u is string => Boolean(u))
-    )
-  ).slice(0, 6);
+  // Hero carousel: use the admin-configured hero images if any; otherwise
+  // auto-pick from the category heroes + a few product shots (deduped).
+  const heroImages =
+    hero.images.length > 0
+      ? hero.images
+      : Array.from(
+          new Set(
+            [
+              heroFootwear?.url,
+              heroMen?.url,
+              heroWomen?.url,
+              heroApparel?.url,
+              heroKids?.url,
+              ...all.slice(0, 6).map((p) => p.images[0]),
+            ].filter((u): u is string => Boolean(u))
+          )
+        ).slice(0, 6);
 
   // Hero copy is admin-editable (Homepage hero settings). When it's still the
   // built-in default, show the translated version; a custom admin headline is

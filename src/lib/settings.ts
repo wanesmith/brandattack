@@ -12,7 +12,8 @@ export type SettingType =
   | "secret"
   | "select"
   | "number"
-  | "image";
+  | "image"
+  | "images";
 export type SettingGroup =
   | "Site"
   | "Branding"
@@ -146,13 +147,12 @@ export const SETTING_DEFS: SettingDef[] = [
     help: "Shown in the footer as a contact address.",
   },
   {
-    key: "hero_image_url",
+    key: "hero_images",
     group: "Homepage hero",
-    label: "Hero image",
-    type: "image",
+    label: "Hero images",
+    type: "images",
     default: "",
-    placeholder: "/products/HI5607-1.webp or https://…",
-    help: "Full-bleed background. Upload an image, or paste a product path (/products/…) or any URL. Leave blank to auto-pick from the catalogue.",
+    help: "Images for the rotating hero carousel. Upload one or more and drag ←/→ to reorder. Leave empty to auto-pick from the catalogue (category + product images).",
   },
   {
     key: "hero_eyebrow",
@@ -351,13 +351,25 @@ export type Branding = {
   announcements: string[];
   supportEmail: string;
   hero: {
-    imageUrl: string;
+    images: string[];
     eyebrow: string;
     heading: string;
     ctaLabel: string;
     ctaHref: string;
   };
 };
+
+/** Parse a JSON array of image URLs (tolerates a bare single-URL string). */
+function parseImageList(json: string | undefined): string[] {
+  if (!json || !json.trim()) return [];
+  try {
+    const arr = JSON.parse(json);
+    if (Array.isArray(arr)) return arr.filter((u) => typeof u === "string" && u.trim());
+  } catch {
+    return [json.trim()];
+  }
+  return [];
+}
 
 export async function getBranding(): Promise<Branding> {
   const s = await getAllSettings();
@@ -372,7 +384,7 @@ export async function getBranding(): Promise<Branding> {
       .filter(Boolean),
     supportEmail: s.support_email.trim(),
     hero: {
-      imageUrl: s.hero_image_url.trim(),
+      images: parseImageList(s.hero_images),
       eyebrow: s.hero_eyebrow,
       heading: s.hero_heading,
       ctaLabel: s.hero_cta_label || DEFAULTS.hero_cta_label,

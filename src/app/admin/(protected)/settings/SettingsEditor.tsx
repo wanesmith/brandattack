@@ -6,7 +6,7 @@ type Field = {
   key: string;
   group: string;
   label: string;
-  type: "text" | "textarea" | "email" | "secret" | "select" | "number" | "image";
+  type: "text" | "textarea" | "email" | "secret" | "select" | "number" | "image" | "images";
   default: string;
   placeholder?: string;
   help?: string;
@@ -119,6 +119,8 @@ function FieldRow({
       <div>
         {f.type === "image" ? (
           <ImageField value={value} placeholder={f.placeholder} onChange={(v) => onChange(f.key, v)} />
+        ) : f.type === "images" ? (
+          <MultiImageField value={value} onChange={(v) => onChange(f.key, v)} />
         ) : f.type === "textarea" ? (
           <textarea
             id={`f-${f.key}`}
@@ -245,6 +247,105 @@ function ImageField({
           alt="Hero preview"
           className="mt-3 h-28 w-full max-w-sm rounded-sm border border-[var(--border)] object-cover"
         />
+      )}
+    </div>
+  );
+}
+
+// Multi-image manager: value is a JSON array of URLs. Upload one or more,
+// reorder with ←/→, remove with ✕.
+function MultiImageField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  let images: string[] = [];
+  try {
+    const arr = JSON.parse(value || "[]");
+    if (Array.isArray(arr)) images = arr.filter((u) => typeof u === "string");
+  } catch {
+    if (value.trim()) images = [value.trim()];
+  }
+
+  const commit = (next: string[]) => onChange(JSON.stringify(next));
+
+  async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const urls: string[] = [];
+      for (const file of Array.from(files)) {
+        const blob = await upload(`hero/${file.name}`, file, {
+          access: "public",
+          handleUploadUrl: "/api/admin/upload",
+        });
+        urls.push(blob.url);
+      }
+      commit([...images, ...urls].slice(0, 10));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed — is the Blob store connected?");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  function move(i: number, dir: -1 | 1) {
+    const j = i + dir;
+    if (j < 0 || j >= images.length) return;
+    const next = [...images];
+    [next[i], next[j]] = [next[j], next[i]];
+    commit(next);
+  }
+
+  return (
+    <div>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+          className="rounded-sm border border-[var(--border)] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider hover:border-[var(--accent)] disabled:opacity-50"
+        >
+          {uploading ? "Uploading…" : "+ Add images"}
+        </button>
+        <input ref={fileRef} type="file" accept="image/*" multiple onChange={onPick} className="hidden" />
+      </div>
+      {error && <p className="mt-1 text-xs text-red-300">{error}</p>}
+      {images.length === 0 ? (
+        <p className="mt-2 text-xs text-[var(--muted)]">
+          No hero images set — the carousel auto-uses category &amp; product images.
+        </p>
+      ) : (
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {images.map((url, i) => (
+            <div
+              key={url}
+              className="group relative aspect-video overflow-hidden rounded-sm border border-[var(--border)] bg-[var(--background)]"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={url} alt="" className="h-full w-full object-cover" />
+              {i === 0 && (
+                <span className="absolute left-1 top-1 rounded-sm bg-[var(--accent)] px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase text-black">
+                  First
+                </span>
+              )}
+              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/60 p-1 opacity-0 transition-opacity group-hover:opacity-100">
+                <button type="button" onClick={() => move(i, -1)} disabled={i === 0} className="px-1 text-white disabled:opacity-30" aria-label="Move earlier">←</button>
+                <button type="button" onClick={() => commit(images.filter((_, idx) => idx !== i))} className="px-1 text-white hover:text-red-400" aria-label="Remove">✕</button>
+                <button type="button" onClick={() => move(i, 1)} disabled={i === images.length - 1} className="px-1 text-white disabled:opacity-30" aria-label="Move later">→</button>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
