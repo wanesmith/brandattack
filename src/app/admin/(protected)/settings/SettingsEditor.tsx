@@ -289,6 +289,9 @@ function MultiImageField({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<{ url: string; title: string }[]>([]);
   const [loadingResults, setLoadingResults] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   let images: string[] = [];
   try {
@@ -306,13 +309,20 @@ function MultiImageField({
     let cancelled = false;
     setLoadingResults(true);
     const t = setTimeout(() => {
-      fetch(`/api/admin/images?q=${encodeURIComponent(query)}`)
+      fetch(`/api/admin/images?q=${encodeURIComponent(query)}&page=0`)
         .then((r) => r.json())
         .then((d) => {
-          if (!cancelled) setResults(Array.isArray(d.images) ? d.images : []);
+          if (!cancelled) {
+            setResults(Array.isArray(d.images) ? d.images : []);
+            setHasMore(Boolean(d.hasMore));
+            setPage(0);
+          }
         })
         .catch(() => {
-          if (!cancelled) setResults([]);
+          if (!cancelled) {
+            setResults([]);
+            setHasMore(false);
+          }
         })
         .finally(() => {
           if (!cancelled) setLoadingResults(false);
@@ -323,6 +333,23 @@ function MultiImageField({
       clearTimeout(t);
     };
   }, [pickerOpen, query]);
+
+  async function loadMore() {
+    const next = page + 1;
+    setLoadingMore(true);
+    try {
+      const d = await fetch(
+        `/api/admin/images?q=${encodeURIComponent(query)}&page=${next}`
+      ).then((r) => r.json());
+      setResults((prev) => [...prev, ...(Array.isArray(d.images) ? d.images : [])]);
+      setHasMore(Boolean(d.hasMore));
+      setPage(next);
+    } catch {
+      setHasMore(false);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -416,6 +443,16 @@ function MultiImageField({
                 );
               })}
             </div>
+          )}
+          {hasMore && !loadingResults && (
+            <button
+              type="button"
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="mt-3 w-full rounded-sm border border-[var(--border)] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider hover:border-[var(--accent)] disabled:opacity-50"
+            >
+              {loadingMore ? "Loading…" : "Load more"}
+            </button>
           )}
         </div>
       )}

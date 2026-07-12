@@ -11,7 +11,10 @@ export async function GET(req: Request) {
   const denied = await requireAdmin();
   if (denied) return denied;
 
-  const q = new URL(req.url).searchParams.get("q")?.trim() ?? "";
+  const url = new URL(req.url);
+  const q = url.searchParams.get("q")?.trim() ?? "";
+  const page = Math.max(0, parseInt(url.searchParams.get("page") ?? "0", 10) || 0);
+  const PAGE_SIZE = 60;
   const conditions = [
     eq(schema.products.active, true),
     eq(schema.productImages.position, 1),
@@ -31,7 +34,9 @@ export async function GET(req: Request) {
     .innerJoin(schema.products, eq(schema.products.id, schema.productImages.productId))
     .where(and(...conditions))
     .orderBy(asc(schema.products.title))
-    .limit(60);
+    .limit(PAGE_SIZE + 1)
+    .offset(page * PAGE_SIZE);
 
-  return NextResponse.json({ images: rows });
+  const hasMore = rows.length > PAGE_SIZE;
+  return NextResponse.json({ images: rows.slice(0, PAGE_SIZE), hasMore });
 }
