@@ -2,6 +2,7 @@ import Link from "next/link";
 import { and, count, desc, eq, ilike, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { formatUsd } from "@/lib/format";
+import { OrderRows } from "./OrderRows";
 
 export const dynamic = "force-dynamic";
 
@@ -60,11 +61,20 @@ export default async function OrdersAdmin({ searchParams }: { searchParams: Sear
   const selectCls =
     "rounded-sm border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none";
 
+  const rows = orders.map((o) => ({
+    id: o.id,
+    when: o.createdAt.toLocaleString("en-GB", { timeZone: "Asia/Singapore" }),
+    email: o.email,
+    total: formatUsd(Number(o.totalUsd)),
+    status: o.status,
+    fulfilled: Boolean(o.fulfilledAt),
+  }));
+
   return (
     <div>
       <h1 className="text-3xl font-bold">Orders</h1>
       <p className="mt-1 text-sm text-[var(--muted)]">
-        {total.toLocaleString()} total · page {page} of {totalPages}
+        {total.toLocaleString()} total · page {page} of {totalPages} · click a row to open the order
       </p>
 
       <form className="mt-5 flex flex-wrap items-center gap-3">
@@ -123,32 +133,7 @@ export default async function OrdersAdmin({ searchParams }: { searchParams: Sear
                 </td>
               </tr>
             ) : (
-              orders.map((o) => (
-                <tr key={o.id} className="hover:bg-[var(--background)]">
-                  <td className="px-4 py-2 text-[var(--muted)]">{o.createdAt.toLocaleString()}</td>
-                  <td className="px-4 py-2 font-mono text-xs">
-                    <Link href={`/admin/orders/${o.id}`} className="hover:text-[var(--accent)] hover:underline">
-                      {o.id.slice(0, 8)}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-2 font-mono text-xs">{o.email}</td>
-                  <td className="px-4 py-2">{formatUsd(Number(o.totalUsd))}</td>
-                  <td className="px-4 py-2 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                    {o.status}
-                  </td>
-                  <td className="px-4 py-2">
-                    {o.fulfilledAt ? (
-                      <span className="rounded-sm bg-emerald-500/15 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-emerald-400">
-                        ✓ Fulfilled
-                      </span>
-                    ) : (
-                      <span className="rounded-sm bg-amber-500/15 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-amber-400">
-                        Pending
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))
+              <OrderRows rows={rows} />
             )}
           </tbody>
         </table>
