@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CartButton } from "@/components/CartButton";
 import { HeaderLogout } from "@/components/HeaderLogout";
+import { SearchBox } from "@/components/SearchBox";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 import { getBranding } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/customer-auth";
@@ -66,16 +67,7 @@ export async function SiteHeader() {
         {/* Right tools */}
         <div className="ml-auto flex items-center gap-2 lg:ml-0">
           <LanguageSwitcher />
-          <button
-            type="button"
-            aria-label={t("header.search")}
-            className="hidden h-9 w-9 items-center justify-center text-ink transition-colors hover:text-accent sm:flex"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="7" />
-              <path d="m20 20-4-4" strokeLinecap="round" />
-            </svg>
-          </button>
+          <SearchBox />
           <Link
             href={user ? "/account" : "/login"}
             aria-label={user ? t("header.account") : t("header.signIn")}

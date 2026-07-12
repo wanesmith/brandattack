@@ -93,7 +93,7 @@ export async function SiteFooter() {
               [t("footer.linkReturns"), "/shipping"],
               [t("footer.linkSizeGuide"), "/shipping"],
               [t("footer.linkFaq"), "/shipping"],
-              [t("footer.linkContact"), "/shipping"],
+              [t("footer.linkContact"), "/support"],
             ]}
           />
 

@@ -6,6 +6,7 @@ export type SendEmailInput = {
   subject: string;
   html: string;
   text: string;
+  replyTo?: string;
 };
 
 export type SendResult = { delivered: boolean; provider: string; note?: string };
@@ -55,6 +56,7 @@ async function sendViaResend(
       subject: input.subject,
       html: input.html,
       text: input.text,
+      ...(input.replyTo ? { reply_to: input.replyTo } : {}),
     }),
   });
   if (!res.ok) {
@@ -83,6 +85,7 @@ async function sendViaSmtp(
     subject: input.subject,
     html: input.html,
     text: input.text,
+    ...(input.replyTo ? { replyTo: input.replyTo } : {}),
   });
   return { delivered: true, provider: "smtp" };
 }
