@@ -57,6 +57,15 @@ export const SETTING_DEFS: SettingDef[] = [
     help: "Shown on the maintenance page.",
   },
   {
+    key: "maintenance_bypass_code",
+    group: "Site",
+    label: "Maintenance bypass code",
+    type: "text",
+    default: "",
+    placeholder: "e.g. sneak-peek-2026",
+    help: "Share a link like https://www.brandstoxx.com/?bypass=THE_CODE — visitors with the matching code skip the maintenance page for their session. Leave blank to disable bypass.",
+  },
+  {
     key: "signups_enabled",
     group: "Site",
     label: "Customer signups",
@@ -309,11 +318,16 @@ export async function getAllSettings(): Promise<Record<string, string>> {
   return merged;
 }
 
-export async function getMaintenance(): Promise<{ enabled: boolean; message: string }> {
+export async function getMaintenance(): Promise<{
+  enabled: boolean;
+  message: string;
+  bypassCode: string;
+}> {
   const s = await getAllSettings();
   return {
     enabled: s.maintenance_mode === "true",
     message: s.maintenance_message || DEFAULTS.maintenance_message,
+    bypassCode: (s.maintenance_bypass_code || "").trim(),
   };
 }
 

@@ -21,14 +21,20 @@ export default async function SiteLayout({ children }: Readonly<{ children: Reac
   if (maintenance.enabled) {
     const store = await cookies();
     const isAdmin = isValidSessionCookie(store.get(ADMIN_COOKIE_NAME)?.value);
-    if (!isAdmin) {
+    // Bypass: a session cookie (set by proxy.ts from ?bypass=<code>) matching
+    // the admin-configured code lets a visitor through.
+    const bypassed =
+      maintenance.bypassCode.length > 0 &&
+      store.get("mnt_bypass")?.value === maintenance.bypassCode; // set by proxy.ts
+
+    if (!isAdmin && !bypassed) {
       // Redirect (not render) so no storefront/page data is sent to visitors.
       redirect("/maintenance");
     }
-    // Signed-in admins see the live site with a preview banner.
+    // Admins (and bypassers) see the live site; admins get the preview banner.
     return (
       <LocaleProvider locale={locale} messages={messages}>
-        <AdminPreviewBanner />
+        {isAdmin && <AdminPreviewBanner />}
         <SiteHeader />
         <main className="relative z-[2] flex-1">{children}</main>
         <SiteFooter />
