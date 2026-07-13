@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ProductCard } from "@/components/ProductCard";
-import { filterProducts, type Filters, type Product } from "@/lib/products";
+import { filterProducts, getAvailableSizes, type Filters, type Product } from "@/lib/products";
 import { getActiveFacets } from "@/lib/facets";
 import { getT } from "@/lib/i18n/server";
 
@@ -48,6 +48,7 @@ const ALLOWED: (keyof Filters)[] = [
   "productGroup",
   "season",
   "brand",
+  "size",
   "q",
 ];
 
@@ -95,10 +96,18 @@ export default async function ShopPage({ searchParams }: { searchParams: SearchP
   const filters = pickFilters(sp);
   const sort = typeof sp.sort === "string" ? sp.sort : "default";
 
-  const [allProducts, facets] = await Promise.all([
+  const [allProducts, facets, sizes] = await Promise.all([
     filterProducts(filters),
     getActiveFacets(),
+    getAvailableSizes(),
   ]);
+
+  // Size lives on variants, not products, so it isn't part of the DB facet
+  // system — synthesize a facet group for the sidebar.
+  const sizeFacet =
+    sizes.length > 0
+      ? { id: "size", label: "Size", values: sizes.map((s) => ({ value: s, label: s })) }
+      : null;
 
   const products = sortProducts(allProducts, sort);
   const heading = categoryHeading(filters);
@@ -190,7 +199,8 @@ export default async function ShopPage({ searchParams }: { searchParams: SearchP
             {facets.map((facet) => (
               <FacetGroup key={facet.id} facet={facet} current={filters} t={t} />
             ))}
-            {facets.length === 0 && (
+            {sizeFacet && <FacetGroup facet={sizeFacet} current={filters} t={t} />}
+            {facets.length === 0 && !sizeFacet && (
               <p className="label-mono-sm text-ink-faded">{t("shop.noFilters")}</p>
             )}
           </aside>
@@ -241,7 +251,12 @@ function FacetGroup({
         </span>
         <span className="text-base text-ink-faded transition-transform group-open:rotate-45">+</span>
       </summary>
-      <ul className="mt-3 space-y-1">
+      <ul
+        className={
+          "mt-3 space-y-1" +
+          (facet.values.length > 15 ? " max-h-64 overflow-y-auto pr-1" : "")
+        }
+      >
         {facet.values.map((opt) => {
           const selected = current[facet.id as keyof Filters] === opt.value;
           const params = new URLSearchParams();

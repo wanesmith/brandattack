@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, eq, gt, ilike, inArray, or, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 
 export { formatUsd, discountPercent } from "./format";
@@ -100,6 +100,7 @@ export type Filters = {
   productGroup?: string;
   season?: string;
   brand?: string;
+  size?: string;
   q?: string;
 };
 
@@ -154,6 +155,61 @@ export async function getDefaultHeroImages(limit = 6): Promise<string[]> {
   ).slice(0, limit);
 }
 
+const APPAREL_ORDER = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL", "2XL", "3XL", "4XL", "5XL"];
+
+// A shoe/kids size only if the WHOLE label is numeric (so "2XL" isn't read as 2).
+function shoeSize(s: string): { n: number; kids: boolean } | null {
+  const m = s.trim().match(/^(\d+(?:\.5)?)(\s*\(kids\))?$/i);
+  return m ? { n: parseFloat(m[1]), kids: Boolean(m[2]) } : null;
+}
+
+// Sort sizes sensibly: adult shoe numerics, then kids numerics, then apparel
+// letters in wear order, then anything else alphabetically.
+function compareSizes(a: string, b: string): number {
+  const va = shoeSize(a);
+  const vb = shoeSize(b);
+  if (va && vb) return va.kids !== vb.kids ? (va.kids ? 1 : -1) : va.n - vb.n;
+  if (va || vb) return va ? -1 : 1;
+  const ia = APPAREL_ORDER.indexOf(a.toUpperCase());
+  const ib = APPAREL_ORDER.indexOf(b.toUpperCase());
+  if (ia !== -1 && ib !== -1) return ia - ib;
+  if (ia !== -1 || ib !== -1) return ia !== -1 ? -1 : 1;
+  return a.localeCompare(b);
+}
+
+const APPAREL_SIZES = new Set([
+  "XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL",
+  "2XL", "3XL", "4XL", "5XL",
+]);
+
+// The source apparel sizing is inconsistent (chest codes, measurements, etc.),
+// so the sidebar lists only standard, recognizable sizes: shoe numerics up to
+// 20 (incl. half + kids) and standard apparel letters. The filter itself still
+// works for any exact size label via the URL.
+function isStandardSize(raw: string): boolean {
+  const s = raw.trim();
+  const m = s.match(/^(\d{1,2})(\.5)?(\s*\(kids\))?$/i);
+  if (m) {
+    const n = parseFloat(s);
+    return n > 0 && n <= 20;
+  }
+  return APPAREL_SIZES.has(s.toUpperCase());
+}
+
+/** Distinct standard size labels currently in stock on active products. */
+export async function getAvailableSizes(): Promise<string[]> {
+  const rows = await db
+    .selectDistinct({ sizeLabel: schema.variants.sizeLabel })
+    .from(schema.variants)
+    .innerJoin(schema.products, eq(schema.products.id, schema.variants.productId))
+    .where(and(eq(schema.products.active, true), gt(schema.variants.stock, 0)));
+  return rows
+    .map((r) => r.sizeLabel)
+    .filter((s): s is string => Boolean(s && s.trim()))
+    .filter(isStandardSize)
+    .sort(compareSizes);
+}
+
 export async function filterProducts(filters: Filters): Promise<Product[]> {
   const conditions = [eq(schema.products.active, true)];
   if (filters.division) {
@@ -177,6 +233,14 @@ export async function filterProducts(filters: Filters): Promise<Product[]> {
   }
   if (filters.brand) {
     conditions.push(eq(schema.products.brand, filters.brand));
+  }
+  if (filters.size) {
+    // Product matches if it has that size in stock (size lives on variants).
+    const withSize = db
+      .select({ id: schema.variants.productId })
+      .from(schema.variants)
+      .where(and(eq(schema.variants.sizeLabel, filters.size), gt(schema.variants.stock, 0)));
+    conditions.push(inArray(schema.products.id, withSize));
   }
   if (filters.q && filters.q.trim()) {
     const pattern = `%${filters.q.trim()}%`;
