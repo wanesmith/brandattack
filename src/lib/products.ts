@@ -183,12 +183,19 @@ const APPAREL_SIZES = new Set([
   "2XL", "3XL", "4XL", "5XL",
 ]);
 
+// Standard EU kids apparel heights (cm) — used for kids clothing sizing.
+const KIDS_HEIGHTS = new Set([
+  "50", "56", "62", "68", "74", "80", "86", "92", "98", "104", "110", "116",
+  "122", "128", "134", "140", "146", "152", "158", "164", "170", "176", "182",
+]);
+
 // The source apparel sizing is inconsistent (chest codes, measurements, etc.),
 // so the sidebar lists only standard, recognizable sizes: shoe numerics up to
 // 20 (incl. half + kids) and standard apparel letters. The filter itself still
 // works for any exact size label via the URL.
 function isStandardSize(raw: string): boolean {
   const s = raw.trim();
+  if (KIDS_HEIGHTS.has(s)) return true;
   const m = s.match(/^(\d{1,2})(\.5)?(\s*\(kids\))?$/i);
   if (m) {
     const n = parseFloat(s);
