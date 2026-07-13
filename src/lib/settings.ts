@@ -144,7 +144,16 @@ export const SETTING_DEFS: SettingDef[] = [
     type: "email",
     default: "",
     placeholder: "support@brand-stoxx.com",
-    help: "Shown in the footer as a contact address.",
+    help: "Receives Support-page messages; shown in the footer as a contact address.",
+  },
+  {
+    key: "info_email",
+    group: "Branding",
+    label: "Info / contact email",
+    type: "email",
+    default: "",
+    placeholder: "info@brand-stoxx.com",
+    help: "Receives Contact Us page messages.",
   },
   {
     key: "hero_images",
@@ -350,6 +359,7 @@ export type Branding = {
   tagline: string;
   announcements: string[];
   supportEmail: string;
+  infoEmail: string;
   hero: {
     images: string[];
     eyebrow: string;
@@ -383,6 +393,7 @@ export async function getBranding(): Promise<Branding> {
       .map((line) => line.trim())
       .filter(Boolean),
     supportEmail: s.support_email.trim(),
+    infoEmail: s.info_email.trim(),
     hero: {
       images: parseImageList(s.hero_images),
       eyebrow: s.hero_eyebrow,

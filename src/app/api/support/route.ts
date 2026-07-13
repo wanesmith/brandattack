@@ -12,7 +12,14 @@ function escapeHtml(s: string): string {
 }
 
 export async function POST(req: Request) {
-  let body: { name?: unknown; email?: unknown; subject?: unknown; message?: unknown; company?: unknown };
+  let body: {
+    name?: unknown;
+    email?: unknown;
+    subject?: unknown;
+    message?: unknown;
+    company?: unknown;
+    kind?: unknown;
+  };
   try {
     body = await req.json();
   } catch {
@@ -36,12 +43,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Please write a message." }, { status: 400 });
   }
 
-  const { siteName, supportEmail } = await getBranding();
-  const to = supportEmail || "support@brandstoxx.com";
-  const subjectLine = `Support${subject ? `: ${subject}` : ""} — from ${name || email}`;
+  const isContact = body.kind === "contact";
+  const { siteName, supportEmail, infoEmail } = await getBranding();
+  const to = isContact
+    ? infoEmail || "info@brandstoxx.com"
+    : supportEmail || "support@brandstoxx.com";
+  const kindLabel = isContact ? "Contact" : "Support";
+  const subjectLine = `${kindLabel}${subject ? `: ${subject}` : ""} — from ${name || email}`;
 
   const text = [
-    `New support message via ${siteName}`,
+    `New ${kindLabel.toLowerCase()} message via ${siteName}`,
     ``,
     `Name:    ${name || "—"}`,
     `Email:   ${email}`,
@@ -51,7 +62,7 @@ export async function POST(req: Request) {
   ].join("\n");
 
   const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:14px;color:#18181b;line-height:1.6">
-    <p style="color:#71717a;margin:0 0 12px">New support message via ${escapeHtml(siteName)}</p>
+    <p style="color:#71717a;margin:0 0 12px">New ${kindLabel.toLowerCase()} message via ${escapeHtml(siteName)}</p>
     <p style="margin:0"><strong>Name:</strong> ${escapeHtml(name || "—")}</p>
     <p style="margin:0"><strong>Email:</strong> ${escapeHtml(email)}</p>
     <p style="margin:0 0 12px"><strong>Subject:</strong> ${escapeHtml(subject || "—")}</p>

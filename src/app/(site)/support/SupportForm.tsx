@@ -4,7 +4,7 @@ import { useState } from "react";
 const inputClass =
   "mt-1 w-full rounded-sm border border-rule bg-paper px-3 py-2.5 text-sm text-ink focus:border-accent focus:outline-none";
 
-export function SupportForm() {
+export function SupportForm({ kind = "support" }: { kind?: "support" | "contact" }) {
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "", company: "" });
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
@@ -22,7 +22,7 @@ export function SupportForm() {
       const res = await fetch("/api/support", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, kind }),
       });
       const body = await res.json().catch(() => null);
       if (!res.ok || !body?.ok) throw new Error(body?.error ?? `Failed (HTTP ${res.status})`);
