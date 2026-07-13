@@ -261,7 +261,11 @@ function FacetGroup({
           const selected = current[facet.id as keyof Filters] === opt.value;
           const params = new URLSearchParams();
           for (const [k, v] of Object.entries(current)) {
-            if (v && k !== facet.id) params.set(k, v);
+            if (!v || k === facet.id) continue;
+            // Changing any other filter (e.g. gender) resets the size choice,
+            // since available sizes depend on the category being browsed.
+            if (k === "size" && facet.id !== "size") continue;
+            params.set(k, v);
           }
           if (!selected) params.set(facet.id, opt.value);
           const href = params.toString() ? `/shop?${params.toString()}` : "/shop";
