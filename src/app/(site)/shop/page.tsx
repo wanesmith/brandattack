@@ -41,7 +41,7 @@ const FACET_VALUE_KEY: Record<string, string> = {
   KIDS: "nav.kids",
 };
 
-const ALLOWED: (keyof Filters)[] = [
+const FACET_KEYS = [
   "division",
   "gender",
   "sportsCode",
@@ -49,16 +49,20 @@ const ALLOWED: (keyof Filters)[] = [
   "season",
   "brand",
   "size",
-  "q",
-];
+] as const;
 
 function pickFilters(sp: Record<string, string | string[] | undefined>): Filters {
   const out: Filters = {};
-  for (const k of ALLOWED) {
+  for (const k of FACET_KEYS) {
     const v = sp[k];
-    const s = Array.isArray(v) ? v[0] : v;
-    if (typeof s === "string" && s.trim()) out[k] = s;
+    const arr = (Array.isArray(v) ? v : v != null ? [v] : []).filter(
+      (x): x is string => typeof x === "string" && x.trim() !== ""
+    );
+    if (arr.length) out[k] = arr;
   }
+  const qv = sp.q;
+  const q = Array.isArray(qv) ? qv[0] : qv;
+  if (typeof q === "string" && q.trim()) out.q = q.trim();
   return out;
 }
 
@@ -81,12 +85,15 @@ function sortProducts(items: Product[], sort: string): Product[] {
 
 // Returns i18n keys; the component resolves them with t().
 function categoryHeading(filters: Filters): { titleKey: string; subtitleKey: string } {
-  if (filters.gender === "MEN") return { titleKey: "nav.men", subtitleKey: "shop.subMen" };
-  if (filters.gender === "WOMEN") return { titleKey: "nav.women", subtitleKey: "shop.subWomen" };
-  if (filters.gender === "KIDS") return { titleKey: "nav.kids", subtitleKey: "shop.subKids" };
-  if (filters.division === "FOOTWEAR") return { titleKey: "nav.footwear", subtitleKey: "shop.subFootwear" };
-  if (filters.division === "APPAREL") return { titleKey: "nav.apparel", subtitleKey: "shop.subApparel" };
-  if (filters.division === "HARDWARE") return { titleKey: "nav.hardware", subtitleKey: "shop.subHardware" };
+  const g = filters.gender ?? [];
+  const d = filters.division ?? [];
+  // Only use a specific heading when a single value is selected in that facet.
+  if (g.length === 1 && g[0] === "MEN") return { titleKey: "nav.men", subtitleKey: "shop.subMen" };
+  if (g.length === 1 && g[0] === "WOMEN") return { titleKey: "nav.women", subtitleKey: "shop.subWomen" };
+  if (g.length === 1 && g[0] === "KIDS") return { titleKey: "nav.kids", subtitleKey: "shop.subKids" };
+  if (d.length === 1 && d[0] === "FOOTWEAR") return { titleKey: "nav.footwear", subtitleKey: "shop.subFootwear" };
+  if (d.length === 1 && d[0] === "APPAREL") return { titleKey: "nav.apparel", subtitleKey: "shop.subApparel" };
+  if (d.length === 1 && d[0] === "HARDWARE") return { titleKey: "nav.hardware", subtitleKey: "shop.subHardware" };
   return { titleKey: "shop.allProducts", subtitleKey: "shop.allProductsSub" };
 }
 
@@ -126,18 +133,18 @@ export default async function ShopPage({ searchParams }: { searchParams: SearchP
             <Link href="/shop" className="hover:text-accent">
               {t("shop.shopCrumb")}
             </Link>
-            {filters.division && (
+            {filters.division?.length ? (
               <>
                 <span>/</span>
-                <span className="text-ink">{filters.division.toLowerCase()}</span>
+                <span className="text-ink">{filters.division.join(", ").toLowerCase()}</span>
               </>
-            )}
-            {filters.gender && (
+            ) : null}
+            {filters.gender?.length ? (
               <>
                 <span>/</span>
-                <span className="text-ink">{filters.gender.toLowerCase()}</span>
+                <span className="text-ink">{filters.gender.join(", ").toLowerCase()}</span>
               </>
-            )}
+            ) : null}
           </nav>
 
           <div className="mt-6 pb-8">
@@ -167,9 +174,13 @@ export default async function ShopPage({ searchParams }: { searchParams: SearchP
             )}
           </p>
           <form className="flex items-center gap-3">
-            {Object.entries(filters).map(([k, v]) => (
-              <input key={k} type="hidden" name={k} value={v} />
-            ))}
+            {Object.entries(filters).flatMap(([k, v]) =>
+              Array.isArray(v)
+                ? v.map((val, i) => (
+                    <input key={`${k}-${i}`} type="hidden" name={k} value={val} />
+                  ))
+                : [<input key={k} type="hidden" name={k} value={v as string} />]
+            )}
             <label htmlFor="sort" className="label-mono-sm text-ink-faded">
               {t("shop.sort")}
             </label>
@@ -258,26 +269,41 @@ function FacetGroup({
         }
       >
         {facet.values.map((opt) => {
-          const selected = current[facet.id as keyof Filters] === opt.value;
+          const currentVals = (current[facet.id as keyof Filters] as string[] | undefined) ?? [];
+          const selected = currentVals.includes(opt.value);
           const params = new URLSearchParams();
           for (const [k, v] of Object.entries(current)) {
-            if (!v || k === facet.id) continue;
+            if (k === facet.id) continue;
             // Changing any other filter (e.g. gender) resets the size choice,
             // since available sizes depend on the category being browsed.
             if (k === "size" && facet.id !== "size") continue;
-            params.set(k, v);
+            if (Array.isArray(v)) v.forEach((val) => params.append(k, val));
+            else if (v) params.append(k, v as string);
           }
-          if (!selected) params.set(facet.id, opt.value);
+          // Toggle this value within its facet (multi-select).
+          const nextVals = selected
+            ? currentVals.filter((x) => x !== opt.value)
+            : [...currentVals, opt.value];
+          nextVals.forEach((val) => params.append(facet.id, val));
           const href = params.toString() ? `/shop?${params.toString()}` : "/shop";
           return (
             <li key={opt.value}>
               <Link
                 href={href}
                 className={
-                  "block py-1 text-sm transition-colors " +
-                  (selected ? "font-bold text-ink underline underline-offset-4" : "text-ink-soft hover:text-ink")
+                  "flex items-center gap-2 py-1 text-sm transition-colors " +
+                  (selected ? "font-bold text-ink" : "text-ink-soft hover:text-ink")
                 }
               >
+                <span
+                  aria-hidden
+                  className={
+                    "flex h-3.5 w-3.5 shrink-0 items-center justify-center border text-[9px] leading-none " +
+                    (selected ? "border-ink bg-ink text-paper" : "border-rule")
+                  }
+                >
+                  {selected ? "✓" : ""}
+                </span>
                 {FACET_VALUE_KEY[opt.value] ? t(FACET_VALUE_KEY[opt.value]) : opt.label}
               </Link>
             </li>

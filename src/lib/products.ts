@@ -93,14 +93,15 @@ async function hydrate(rows: ProductRow[]): Promise<Product[]> {
   );
 }
 
+// Facet filters are multi-select (OR within a facet, AND across facets).
 export type Filters = {
-  division?: string;
-  gender?: string;
-  sportsCode?: string;
-  productGroup?: string;
-  season?: string;
-  brand?: string;
-  size?: string;
+  division?: string[];
+  gender?: string[];
+  sportsCode?: string[];
+  productGroup?: string[];
+  season?: string[];
+  brand?: string[];
+  size?: string[];
   q?: string;
 };
 
@@ -201,21 +202,21 @@ function isStandardSize(raw: string): boolean {
 // facet omits it so its options reflect the other active filters).
 function productFilterConditions(filters: Filters, includeSize: boolean) {
   const conditions = [eq(schema.products.active, true)];
-  if (filters.division) {
-    conditions.push(eq(schema.products.division, filters.division as ProductRow["division"]));
+  if (filters.division?.length) {
+    conditions.push(inArray(schema.products.division, filters.division as ProductRow["division"][]));
   }
-  if (filters.gender) {
-    conditions.push(eq(schema.products.gender, filters.gender as ProductRow["gender"]));
+  if (filters.gender?.length) {
+    conditions.push(inArray(schema.products.gender, filters.gender as ProductRow["gender"][]));
   }
-  if (filters.sportsCode) conditions.push(eq(schema.products.sportsCode, filters.sportsCode));
-  if (filters.productGroup) conditions.push(eq(schema.products.productGroup, filters.productGroup));
-  if (filters.season) conditions.push(eq(schema.products.season, filters.season));
-  if (filters.brand) conditions.push(eq(schema.products.brand, filters.brand));
-  if (includeSize && filters.size) {
+  if (filters.sportsCode?.length) conditions.push(inArray(schema.products.sportsCode, filters.sportsCode));
+  if (filters.productGroup?.length) conditions.push(inArray(schema.products.productGroup, filters.productGroup));
+  if (filters.season?.length) conditions.push(inArray(schema.products.season, filters.season));
+  if (filters.brand?.length) conditions.push(inArray(schema.products.brand, filters.brand));
+  if (includeSize && filters.size?.length) {
     const withSize = db
       .select({ id: schema.variants.productId })
       .from(schema.variants)
-      .where(and(eq(schema.variants.sizeLabel, filters.size), gt(schema.variants.stock, 0)));
+      .where(and(inArray(schema.variants.sizeLabel, filters.size), gt(schema.variants.stock, 0)));
     conditions.push(inArray(schema.products.id, withSize));
   }
   if (filters.q && filters.q.trim()) {
@@ -246,7 +247,8 @@ export async function getAvailableSizes(filters: Filters = {}): Promise<string[]
     .where(and(...conditions, gt(schema.variants.stock, 0)));
   // Kids sizes only make sense in the Kids context; a handful of adult products
   // are mis-tagged with a kids variant in the source, so exclude them elsewhere.
-  const hideKids = filters.gender === "MEN" || filters.gender === "WOMEN";
+  const genders = filters.gender ?? [];
+  const hideKids = genders.length > 0 && !genders.includes("KIDS");
   return rows
     .map((r) => r.sizeLabel)
     .filter((s): s is string => Boolean(s && s.trim()))
