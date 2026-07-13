@@ -99,7 +99,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SearchP
   const [allProducts, facets, sizes] = await Promise.all([
     filterProducts(filters),
     getActiveFacets(),
-    getAvailableSizes(),
+    getAvailableSizes(filters),
   ]);
 
   // Size lives on variants, not products, so it isn't part of the DB facet

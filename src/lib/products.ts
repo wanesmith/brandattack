@@ -196,46 +196,22 @@ function isStandardSize(raw: string): boolean {
   return APPAREL_SIZES.has(s.toUpperCase());
 }
 
-/** Distinct standard size labels currently in stock on active products. */
-export async function getAvailableSizes(): Promise<string[]> {
-  const rows = await db
-    .selectDistinct({ sizeLabel: schema.variants.sizeLabel })
-    .from(schema.variants)
-    .innerJoin(schema.products, eq(schema.products.id, schema.variants.productId))
-    .where(and(eq(schema.products.active, true), gt(schema.variants.stock, 0)));
-  return rows
-    .map((r) => r.sizeLabel)
-    .filter((s): s is string => Boolean(s && s.trim()))
-    .filter(isStandardSize)
-    .sort(compareSizes);
-}
-
-export async function filterProducts(filters: Filters): Promise<Product[]> {
+// Product-level WHERE conditions shared by filterProducts and the size facet.
+// `includeSize` controls whether the size filter itself is applied (the size
+// facet omits it so its options reflect the other active filters).
+function productFilterConditions(filters: Filters, includeSize: boolean) {
   const conditions = [eq(schema.products.active, true)];
   if (filters.division) {
-    conditions.push(
-      eq(schema.products.division, filters.division as ProductRow["division"])
-    );
+    conditions.push(eq(schema.products.division, filters.division as ProductRow["division"]));
   }
   if (filters.gender) {
-    conditions.push(
-      eq(schema.products.gender, filters.gender as ProductRow["gender"])
-    );
+    conditions.push(eq(schema.products.gender, filters.gender as ProductRow["gender"]));
   }
-  if (filters.sportsCode) {
-    conditions.push(eq(schema.products.sportsCode, filters.sportsCode));
-  }
-  if (filters.productGroup) {
-    conditions.push(eq(schema.products.productGroup, filters.productGroup));
-  }
-  if (filters.season) {
-    conditions.push(eq(schema.products.season, filters.season));
-  }
-  if (filters.brand) {
-    conditions.push(eq(schema.products.brand, filters.brand));
-  }
-  if (filters.size) {
-    // Product matches if it has that size in stock (size lives on variants).
+  if (filters.sportsCode) conditions.push(eq(schema.products.sportsCode, filters.sportsCode));
+  if (filters.productGroup) conditions.push(eq(schema.products.productGroup, filters.productGroup));
+  if (filters.season) conditions.push(eq(schema.products.season, filters.season));
+  if (filters.brand) conditions.push(eq(schema.products.brand, filters.brand));
+  if (includeSize && filters.size) {
     const withSize = db
       .select({ id: schema.variants.productId })
       .from(schema.variants)
@@ -253,7 +229,34 @@ export async function filterProducts(filters: Filters): Promise<Product[]> {
       )
     );
   }
+  return conditions;
+}
 
+/**
+ * Distinct standard size labels in stock among products matching the current
+ * filters (so Men's won't list kids sizes, etc.). The size filter itself is
+ * excluded so all sizes valid for the context stay switchable.
+ */
+export async function getAvailableSizes(filters: Filters = {}): Promise<string[]> {
+  const conditions = productFilterConditions(filters, false);
+  const rows = await db
+    .selectDistinct({ sizeLabel: schema.variants.sizeLabel })
+    .from(schema.variants)
+    .innerJoin(schema.products, eq(schema.products.id, schema.variants.productId))
+    .where(and(...conditions, gt(schema.variants.stock, 0)));
+  // Kids sizes only make sense in the Kids context; a handful of adult products
+  // are mis-tagged with a kids variant in the source, so exclude them elsewhere.
+  const hideKids = filters.gender === "MEN" || filters.gender === "WOMEN";
+  return rows
+    .map((r) => r.sizeLabel)
+    .filter((s): s is string => Boolean(s && s.trim()))
+    .filter(isStandardSize)
+    .filter((s) => !(hideKids && /\(kids\)/i.test(s)))
+    .sort(compareSizes);
+}
+
+export async function filterProducts(filters: Filters): Promise<Product[]> {
+  const conditions = productFilterConditions(filters, true);
   const rows = await db
     .select()
     .from(schema.products)
