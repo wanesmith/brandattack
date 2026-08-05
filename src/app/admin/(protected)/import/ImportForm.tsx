@@ -6,6 +6,7 @@ type Summary = {
   productsUpdated: number;
   variantsCreated: number;
   variantsUpdated: number;
+  stockReplaced: number;
   imagesAdded: number;
   imagesMissing: string[];
   skippedRows: { articleNo: string; reason: string }[];
@@ -20,6 +21,8 @@ export function ImportForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
+  // The mode the finished import ran with — the checkbox may be toggled after.
+  const [ranWithReplaceStock, setRanWithReplaceStock] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -48,6 +51,7 @@ export function ImportForm() {
       if (!res.ok || !data?.ok) {
         throw new Error(data?.error ?? `Import failed (HTTP ${res.status})`);
       }
+      setRanWithReplaceStock(replaceStock);
       setSummary(data.summary ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -97,7 +101,8 @@ export function ImportForm() {
             <span className="block font-medium">Replace existing stock</span>
             <span className="block text-xs text-[var(--muted)]">
               Off (default) preserves on-hand quantities for variants that already exist; only new
-              variants take stock from the sheet. Turn on for a fresh count from this lot.
+              variants take stock from the sheet. Turn on to overwrite quantities from the sheet,
+              including a 0. Sizes the sheet doesn&apos;t list are never changed either way.
             </span>
           </span>
         </label>
@@ -137,7 +142,7 @@ export function ImportForm() {
         )}
       </div>
 
-      {summary && <Summary summary={summary} />}
+      {summary && <Summary summary={summary} replacedStock={ranWithReplaceStock} />}
     </form>
   );
 }
@@ -177,7 +182,7 @@ function FileField({
   );
 }
 
-function Summary({ summary }: { summary: Summary }) {
+function Summary({ summary, replacedStock }: { summary: Summary; replacedStock: boolean }) {
   return (
     <div className="rounded-md border border-emerald-500/40 bg-emerald-500/5 p-5">
       <div className="font-mono text-xs uppercase tracking-wider text-emerald-300">
@@ -191,6 +196,17 @@ function Summary({ summary }: { summary: Summary }) {
         <Row label="Images written" value={summary.imagesAdded} />
         <Row label="Skipped rows" value={summary.skippedRows.length} />
       </dl>
+
+      {replacedStock ? (
+        <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 border-t border-emerald-500/20 pt-3 text-sm sm:grid-cols-3">
+          <Row label="Quantities overwritten" value={summary.stockReplaced} />
+        </dl>
+      ) : (
+        <p className="mt-3 border-t border-emerald-500/20 pt-3 text-xs text-[var(--muted)]">
+          Existing quantities were preserved — tick “Replace existing stock” to overwrite them from
+          the sheet.
+        </p>
+      )}
 
       {summary.imagesMissing.length > 0 && (
         <details className="mt-4 text-sm">

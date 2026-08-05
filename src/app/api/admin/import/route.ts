@@ -5,9 +5,9 @@ import { requireAdmin } from "@/lib/admin-auth";
 
 // Allow large multipart uploads; otherwise Next.js caps at 1 MB.
 export const runtime = "nodejs";
-// Vercel Hobby caps at 300s; bump to 600 if/when we upgrade to Pro.
-// For very large lots (full 3.3 GB zip) we still recommend the CLI seed path.
-export const maxDuration = 300;
+// On Vercel Pro. For very large lots (full 3.3 GB zip) we still recommend the
+// CLI seed path — this route buffers the whole upload in memory.
+export const maxDuration = 600;
 
 export async function POST(req: Request) {
   const auth = await requireAdmin();

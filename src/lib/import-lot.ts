@@ -1,18 +1,20 @@
 import "server-only";
 import { mkdir, rm, writeFile } from "node:fs/promises";
-import { createReadStream } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { randomBytes } from "node:crypto";
 import StreamZip from "node-stream-zip";
 import ExcelJS from "exceljs";
 import sharp from "sharp";
-import { eq, inArray, sql } from "drizzle-orm";
+import { put } from "@vercel/blob";
+import { eq, inArray } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { backfillFacets } from "./facets";
 
 export type ImportOptions = {
-  /** If true, overwrite stock from the spreadsheet for existing variants.
+  /** If true, overwrite stock from the spreadsheet for every variant the sheet
+   *  lists, including an explicit 0. Sizes absent from the sheet are left alone —
+   *  the sheet only speaks for the rows it contains.
    *  Otherwise leave existing stock untouched (only set stock on new variants). */
   replaceStock: boolean;
   /** Markup multiplier applied to wholesale Price column to compute retail.
@@ -25,6 +27,8 @@ export type ImportSummary = {
   productsUpdated: number;
   variantsCreated: number;
   variantsUpdated: number;
+  /** Existing variants whose stock the sheet actually changed (replaceStock only). */
+  stockReplaced: number;
   imagesAdded: number;
   imagesMissing: string[];
   skippedRows: { articleNo: string; reason: string }[];
@@ -200,7 +204,9 @@ async function parseXlsx(filePath: string) {
     const size = String(row.getCell(2).value ?? "").trim();
     const qtyVal = row.getCell(3).value;
     const qty = Number(qtyVal ?? 0);
-    if (!articleNo || !size || !Number.isFinite(qty) || qty <= 0) continue;
+    // Keep qty 0 rows: with replaceStock on, an explicit 0 is how the sheet
+    // says "this size is sold out". Only junk (negative / non-numeric) is dropped.
+    if (!articleNo || !size || !Number.isFinite(qty) || qty < 0) continue;
     variants.push({ articleNo, size, qty: Math.floor(qty) });
   }
 
@@ -247,15 +253,19 @@ async function extractZip(zipPath: string, destDir: string): Promise<Map<string,
   }
 }
 
-const PUBLIC_PRODUCTS_DIR = path.join(process.cwd(), "public", "products");
 const MAX_EDGE = 1200;
 const WEBP_QUALITY = 82;
 
+/**
+ * Resize to webp and upload to Vercel Blob, returning the public URL.
+ *
+ * The pathname is deterministic and `allowOverwrite` is on, so re-importing a
+ * lot replaces images in place rather than accumulating copies. Deliberately
+ * the same scheme as scripts/import-images-blob.mjs — both write
+ * `products/<ArticleNo>-<n>.webp`, so the CLI and admin paths stay in sync.
+ */
 async function processImage(srcPath: string, articleNo: string, n: number): Promise<string> {
-  await mkdir(PUBLIC_PRODUCTS_DIR, { recursive: true });
-  const outBasename = `${articleNo}-${n}.webp`;
-  const outPath = path.join(PUBLIC_PRODUCTS_DIR, outBasename);
-  await sharp(srcPath)
+  const buf = await sharp(srcPath)
     .rotate()
     .resize({
       width: MAX_EDGE,
@@ -264,8 +274,13 @@ async function processImage(srcPath: string, articleNo: string, n: number): Prom
       withoutEnlargement: true,
     })
     .webp({ quality: WEBP_QUALITY })
-    .toFile(outPath);
-  return `/products/${outBasename}`;
+    .toBuffer();
+  const { url } = await put(`products/${articleNo}-${n}.webp`, buf, {
+    access: "public",
+    contentType: "image/webp",
+    allowOverwrite: true,
+  });
+  return url;
 }
 
 function imageFilenameCandidates(
@@ -310,6 +325,7 @@ export async function importLot(
     productsUpdated: 0,
     variantsCreated: 0,
     variantsUpdated: 0,
+    stockReplaced: 0,
     imagesAdded: 0,
     imagesMissing: [],
     skippedRows: [],
@@ -324,6 +340,14 @@ export async function importLot(
     const arr = variantsByArticle.get(v.articleNo) ?? [];
     arr.push(v);
     variantsByArticle.set(v.articleNo, arr);
+  }
+
+  // Fail before spending minutes extracting a large zip we can't upload.
+  if (zipPath && !process.env.BLOB_READ_WRITE_TOKEN) {
+    throw new Error(
+      "BLOB_READ_WRITE_TOKEN is not set, so product images cannot be uploaded. " +
+        "Re-run without a zip to import spreadsheet data only."
+    );
   }
 
   // Extract zip (if provided)
@@ -438,15 +462,16 @@ export async function importLot(
           }
         }
 
-        // Upsert variants
+        // Upsert variants. One read up front decides created-vs-updated and lets
+        // us report how many quantities the sheet actually moved.
+        const existingVariants = await tx
+          .select({ sku: schema.variants.sku, stock: schema.variants.stock })
+          .from(schema.variants)
+          .where(eq(schema.variants.productId, slug));
+        const stockBySku = new Map(existingVariants.map((r) => [r.sku, r.stock]));
+
         for (const v of variantsByArticle.get(p.articleNo) ?? []) {
           const sku = `${p.articleNo}-${v.size.replace(/\//g, "_")}`;
-          const existing = await tx
-            .select({ sku: schema.variants.sku })
-            .from(schema.variants)
-            .where(eq(schema.variants.sku, sku))
-            .limit(1);
-          const variantExists = existing.length > 0;
 
           await tx
             .insert(schema.variants)
@@ -466,8 +491,13 @@ export async function importLot(
                 ...(opts.replaceStock ? { stock: v.qty } : {}),
               },
             });
-          if (variantExists) summary.variantsUpdated++;
-          else summary.variantsCreated++;
+
+          if (stockBySku.has(sku)) {
+            summary.variantsUpdated++;
+            if (opts.replaceStock && stockBySku.get(sku) !== v.qty) summary.stockReplaced++;
+          } else {
+            summary.variantsCreated++;
+          }
         }
       });
     }
