@@ -1,6 +1,28 @@
 import "server-only";
-import { and, asc, eq, gt, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, eq, exists, gt, ilike, inArray, or, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
+
+/**
+ * Product has at least one variant still in stock.
+ *
+ * Sold-out products drop out of every browse surface — shop listing, facet
+ * options, homepage rails, category tiles, related products, sitemap. The
+ * product page itself (getProductBySlug) deliberately still resolves so
+ * existing links and ads don't 404; it renders with every size disabled.
+ */
+function inStock() {
+  return exists(
+    db
+      .select({ one: sql`1` })
+      .from(schema.variants)
+      .where(
+        and(
+          eq(schema.variants.productId, schema.products.id),
+          gt(schema.variants.stock, 0)
+        )
+      )
+  );
+}
 
 export { formatUsd, discountPercent } from "./format";
 
@@ -109,7 +131,7 @@ export async function getAllProducts(): Promise<Product[]> {
   const rows = await db
     .select()
     .from(schema.products)
-    .where(eq(schema.products.active, true))
+    .where(and(eq(schema.products.active, true), inStock()))
     .orderBy(asc(schema.products.title));
   return hydrate(rows);
 }
@@ -208,7 +230,7 @@ function isStandardSize(raw: string): boolean {
 // `includeSize` controls whether the size filter itself is applied (the size
 // facet omits it so its options reflect the other active filters).
 function productFilterConditions(filters: Filters, includeSize: boolean) {
-  const conditions = [eq(schema.products.active, true)];
+  const conditions = [eq(schema.products.active, true), inStock()];
   if (filters.division?.length) {
     conditions.push(inArray(schema.products.division, filters.division as ProductRow["division"][]));
   }
@@ -285,11 +307,13 @@ export async function getProductBySlug(slug: string): Promise<Product | undefine
   return p;
 }
 
+// Feeds the sitemap and generateStaticParams — sold-out products are excluded
+// so search engines aren't pointed at pages nothing can be bought from.
 export async function getAllProductSlugs(): Promise<string[]> {
   const rows = await db
     .select({ id: schema.products.id })
     .from(schema.products)
-    .where(eq(schema.products.active, true));
+    .where(and(eq(schema.products.active, true), inStock()));
   return rows.map((r) => r.id);
 }
 
@@ -305,7 +329,7 @@ export async function uniqueValuesFor(
   const rows = await db
     .selectDistinct({ v: col })
     .from(schema.products)
-    .where(eq(schema.products.active, true))
+    .where(and(eq(schema.products.active, true), inStock()))
     .orderBy(asc(col));
   return rows.map((r) => r.v as string).filter(Boolean);
 }
@@ -337,6 +361,7 @@ export async function getCategoryHero(
     .where(
       and(
         eq(schema.products.active, true),
+        inStock(),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         eq(col as any, value as any)
       )
@@ -361,7 +386,7 @@ export async function getJustInProducts(limit = 8): Promise<Product[]> {
   const rows = await db
     .select()
     .from(schema.products)
-    .where(eq(schema.products.active, true))
+    .where(and(eq(schema.products.active, true), inStock()))
     .orderBy(sql`${schema.products.updatedAt} DESC NULLS LAST`)
     .limit(limit);
   return hydrate(rows);
@@ -378,6 +403,7 @@ export async function getBiggestDiscounts(limit = 8): Promise<Product[]> {
     .where(
       and(
         eq(schema.products.active, true),
+        inStock(),
         sql`${schema.products.rrpUsd} > 0`
       )
     )
@@ -399,6 +425,7 @@ export async function getRelatedProducts(
     .where(
       and(
         eq(schema.products.active, true),
+        inStock(),
         eq(schema.products.productGroup, productGroup),
         sql`${schema.products.id} != ${productId}`
       )
